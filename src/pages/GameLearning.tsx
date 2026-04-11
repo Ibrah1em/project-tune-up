@@ -1,207 +1,162 @@
-import { useState, useRef, useCallback, useEffect, memo } from "react";
+import { useState, useRef, useCallback, useEffect, memo, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Play, Square, RotateCcw, Flag, Trash2, Copy, ZoomIn, ZoomOut,
-  Maximize2, ChevronDown, ChevronRight, Undo2, Redo2, Save,
-  Upload, Download, Plus, Minus, Settings, HelpCircle, Gamepad2,
+  Play, Square, RotateCcw, Flag, Trash2, ZoomIn, ZoomOut,
+  Maximize2, Undo2, Redo2, Plus, Gamepad2, Globe, Eye, EyeOff,
+  ArrowRight, ArrowLeft, ChevronDown, Rocket, X, GripVertical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/Footer";
+import {
+  Block, Sprite, Language,
+} from "@/components/scratch/types";
+import {
+  CATEGORIES, BLOCK_TEMPLATES, SPRITE_LIBRARY, BACKDROP_LIBRARY,
+  uid, cloneBlock,
+} from "@/components/scratch/blockDefinitions";
+import SpaceShooterGame from "@/components/scratch/SpaceShooterGame";
 
-/* ═══════════════════ TYPES ═══════════════════ */
-interface Block {
-  id: string;
-  type: string;
-  category: string;
-  label: string;
-  labelAr: string;
-  inputs?: { name: string; type: "number" | "string" | "dropdown"; default: string | number; options?: string[] }[];
-  values?: Record<string, string | number>;
-  children?: Block[];
-  next?: Block[];
-}
-
-interface Sprite {
-  id: string;
-  name: string;
-  emoji: string;
-  x: number;
-  y: number;
-  rotation: number;
-  scale: number;
-  visible: boolean;
-  scripts: Block[][];
-  costumes: string[];
-  currentCostume: number;
-  sayText?: string;
-}
-
-/* ═══════════════════ BLOCK DEFINITIONS ═══════════════════ */
-const CATEGORIES = [
-  { id: "motion", labelAr: "الحركة", color: "from-blue-500 to-blue-600", bg: "bg-blue-500/20", border: "border-blue-500/40", text: "text-blue-400" },
-  { id: "looks", labelAr: "المظهر", color: "from-purple-500 to-purple-600", bg: "bg-purple-500/20", border: "border-purple-500/40", text: "text-purple-400" },
-  { id: "sound", labelAr: "الصوت", color: "from-pink-500 to-pink-600", bg: "bg-pink-500/20", border: "border-pink-500/40", text: "text-pink-400" },
-  { id: "events", labelAr: "الأحداث", color: "from-yellow-500 to-yellow-600", bg: "bg-yellow-500/20", border: "border-yellow-500/40", text: "text-yellow-400" },
-  { id: "control", labelAr: "التحكم", color: "from-orange-500 to-orange-600", bg: "bg-orange-500/20", border: "border-orange-500/40", text: "text-orange-400" },
-  { id: "sensing", labelAr: "الاستشعار", color: "from-cyan-500 to-cyan-600", bg: "bg-cyan-500/20", border: "border-cyan-500/40", text: "text-cyan-400" },
-  { id: "operators", labelAr: "العمليات", color: "from-green-500 to-green-600", bg: "bg-green-500/20", border: "border-green-500/40", text: "text-green-400" },
-  { id: "variables", labelAr: "المتغيرات", color: "from-red-500 to-red-600", bg: "bg-red-500/20", border: "border-red-500/40", text: "text-red-400" },
-];
-
-const BLOCK_TEMPLATES: Block[] = [
-  // Motion
-  { id: "move", type: "move", category: "motion", label: "Move steps", labelAr: "تحرك خطوات", inputs: [{ name: "steps", type: "number", default: 10 }] },
-  { id: "turn_right", type: "turn_right", category: "motion", label: "Turn right", labelAr: "استدر لليمين", inputs: [{ name: "degrees", type: "number", default: 15 }] },
-  { id: "turn_left", type: "turn_left", category: "motion", label: "Turn left", labelAr: "استدر لليسار", inputs: [{ name: "degrees", type: "number", default: 15 }] },
-  { id: "goto_xy", type: "goto_xy", category: "motion", label: "Go to x y", labelAr: "اذهب إلى x y", inputs: [{ name: "x", type: "number", default: 0 }, { name: "y", type: "number", default: 0 }] },
-  { id: "glide", type: "glide", category: "motion", label: "Glide to x y", labelAr: "انزلق إلى x y", inputs: [{ name: "secs", type: "number", default: 1 }, { name: "x", type: "number", default: 0 }, { name: "y", type: "number", default: 0 }] },
-  { id: "set_x", type: "set_x", category: "motion", label: "Set x to", labelAr: "اجعل x =", inputs: [{ name: "x", type: "number", default: 0 }] },
-  { id: "set_y", type: "set_y", category: "motion", label: "Set y to", labelAr: "اجعل y =", inputs: [{ name: "y", type: "number", default: 0 }] },
-  { id: "change_x", type: "change_x", category: "motion", label: "Change x by", labelAr: "غيّر x بمقدار", inputs: [{ name: "dx", type: "number", default: 10 }] },
-  { id: "change_y", type: "change_y", category: "motion", label: "Change y by", labelAr: "غيّر y بمقدار", inputs: [{ name: "dy", type: "number", default: 10 }] },
-  { id: "bounce", type: "bounce", category: "motion", label: "If on edge, bounce", labelAr: "إذا لمست الحافة، ارتد" },
-  { id: "set_rotation", type: "set_rotation", category: "motion", label: "Point in direction", labelAr: "اتجه نحو", inputs: [{ name: "degrees", type: "number", default: 90 }] },
-  // Looks
-  { id: "say", type: "say", category: "looks", label: "Say", labelAr: "قل", inputs: [{ name: "message", type: "string", default: "مرحباً!" }] },
-  { id: "say_for", type: "say_for", category: "looks", label: "Say for secs", labelAr: "قل لمدة", inputs: [{ name: "message", type: "string", default: "مرحباً!" }, { name: "secs", type: "number", default: 2 }] },
-  { id: "think", type: "think", category: "looks", label: "Think", labelAr: "فكّر", inputs: [{ name: "message", type: "string", default: "همم..." }] },
-  { id: "show", type: "show", category: "looks", label: "Show", labelAr: "أظهر" },
-  { id: "hide", type: "hide", category: "looks", label: "Hide", labelAr: "أخفِ" },
-  { id: "set_size", type: "set_size", category: "looks", label: "Set size to %", labelAr: "اجعل الحجم %", inputs: [{ name: "size", type: "number", default: 100 }] },
-  { id: "change_size", type: "change_size", category: "looks", label: "Change size by", labelAr: "غيّر الحجم بمقدار", inputs: [{ name: "change", type: "number", default: 10 }] },
-  { id: "next_costume", type: "next_costume", category: "looks", label: "Next costume", labelAr: "المظهر التالي" },
-  { id: "set_effect", type: "set_effect", category: "looks", label: "Set effect", labelAr: "اضبط التأثير", inputs: [{ name: "effect", type: "dropdown", default: "color", options: ["color", "fisheye", "whirl", "pixelate", "mosaic", "brightness", "ghost"] }, { name: "value", type: "number", default: 0 }] },
-  // Sound
-  { id: "play_sound", type: "play_sound", category: "sound", label: "Play sound", labelAr: "شغّل صوت", inputs: [{ name: "sound", type: "dropdown", default: "pop", options: ["pop", "meow", "beep", "drum", "bell"] }] },
-  { id: "stop_sounds", type: "stop_sounds", category: "sound", label: "Stop all sounds", labelAr: "أوقف كل الأصوات" },
-  { id: "change_volume", type: "change_volume", category: "sound", label: "Change volume by", labelAr: "غيّر مستوى الصوت بمقدار", inputs: [{ name: "vol", type: "number", default: -10 }] },
-  { id: "set_volume", type: "set_volume", category: "sound", label: "Set volume to %", labelAr: "اضبط مستوى الصوت %", inputs: [{ name: "vol", type: "number", default: 100 }] },
-  // Events
-  { id: "when_flag", type: "when_flag", category: "events", label: "When flag clicked", labelAr: "عند النقر على العلم 🟢" },
-  { id: "when_key", type: "when_key", category: "events", label: "When key pressed", labelAr: "عند الضغط على مفتاح", inputs: [{ name: "key", type: "dropdown", default: "space", options: ["space", "up arrow", "down arrow", "left arrow", "right arrow", "a", "b", "c", "d", "w", "s"] }] },
-  { id: "when_clicked", type: "when_clicked", category: "events", label: "When sprite clicked", labelAr: "عند النقر على الشخصية" },
-  { id: "broadcast", type: "broadcast", category: "events", label: "Broadcast", labelAr: "أرسل رسالة", inputs: [{ name: "msg", type: "string", default: "message1" }] },
-  { id: "when_receive", type: "when_receive", category: "events", label: "When I receive", labelAr: "عندما أستقبل", inputs: [{ name: "msg", type: "string", default: "message1" }] },
-  // Control
-  { id: "wait", type: "wait", category: "control", label: "Wait secs", labelAr: "انتظر ثواني", inputs: [{ name: "secs", type: "number", default: 1 }] },
-  { id: "repeat", type: "repeat", category: "control", label: "Repeat", labelAr: "كرر", inputs: [{ name: "times", type: "number", default: 10 }] },
-  { id: "forever", type: "forever", category: "control", label: "Forever", labelAr: "للأبد" },
-  { id: "if", type: "if", category: "control", label: "If then", labelAr: "إذا ... فنفذ" },
-  { id: "if_else", type: "if_else", category: "control", label: "If else", labelAr: "إذا ... وإلا" },
-  { id: "wait_until", type: "wait_until", category: "control", label: "Wait until", labelAr: "انتظر حتى" },
-  { id: "repeat_until", type: "repeat_until", category: "control", label: "Repeat until", labelAr: "كرر حتى" },
-  { id: "stop", type: "stop", category: "control", label: "Stop all", labelAr: "أوقف الكل" },
-  { id: "clone", type: "clone", category: "control", label: "Create clone", labelAr: "أنشئ نسخة" },
-  { id: "delete_clone", type: "delete_clone", category: "control", label: "Delete this clone", labelAr: "احذف هذه النسخة" },
-  // Sensing
-  { id: "touching", type: "touching", category: "sensing", label: "Touching?", labelAr: "هل يلمس؟", inputs: [{ name: "target", type: "dropdown", default: "edge", options: ["edge", "mouse", "sprite"] }] },
-  { id: "touching_color", type: "touching_color", category: "sensing", label: "Touching color?", labelAr: "هل يلمس اللون؟" },
-  { id: "ask", type: "ask", category: "sensing", label: "Ask and wait", labelAr: "اسأل وانتظر", inputs: [{ name: "question", type: "string", default: "ما اسمك؟" }] },
-  { id: "mouse_x", type: "mouse_x", category: "sensing", label: "Mouse x", labelAr: "موقع الفأرة x" },
-  { id: "mouse_y", type: "mouse_y", category: "sensing", label: "Mouse y", labelAr: "موقع الفأرة y" },
-  { id: "key_pressed", type: "key_pressed", category: "sensing", label: "Key pressed?", labelAr: "هل المفتاح مضغوط؟", inputs: [{ name: "key", type: "dropdown", default: "space", options: ["space", "up arrow", "down arrow", "left arrow", "right arrow"] }] },
-  { id: "timer", type: "timer", category: "sensing", label: "Timer", labelAr: "المؤقت" },
-  { id: "reset_timer", type: "reset_timer", category: "sensing", label: "Reset timer", labelAr: "أعد ضبط المؤقت" },
-  // Operators
-  { id: "add", type: "add", category: "operators", label: "Add", labelAr: "جمع", inputs: [{ name: "a", type: "number", default: 0 }, { name: "b", type: "number", default: 0 }] },
-  { id: "subtract", type: "subtract", category: "operators", label: "Subtract", labelAr: "طرح", inputs: [{ name: "a", type: "number", default: 0 }, { name: "b", type: "number", default: 0 }] },
-  { id: "multiply", type: "multiply", category: "operators", label: "Multiply", labelAr: "ضرب", inputs: [{ name: "a", type: "number", default: 0 }, { name: "b", type: "number", default: 0 }] },
-  { id: "divide", type: "divide", category: "operators", label: "Divide", labelAr: "قسمة", inputs: [{ name: "a", type: "number", default: 0 }, { name: "b", type: "number", default: 1 }] },
-  { id: "random", type: "random", category: "operators", label: "Pick random", labelAr: "اختر عشوائي", inputs: [{ name: "from", type: "number", default: 1 }, { name: "to", type: "number", default: 10 }] },
-  { id: "gt", type: "gt", category: "operators", label: "Greater than", labelAr: "أكبر من", inputs: [{ name: "a", type: "number", default: 0 }, { name: "b", type: "number", default: 50 }] },
-  { id: "lt", type: "lt", category: "operators", label: "Less than", labelAr: "أصغر من", inputs: [{ name: "a", type: "number", default: 0 }, { name: "b", type: "number", default: 50 }] },
-  { id: "eq", type: "eq", category: "operators", label: "Equals", labelAr: "يساوي", inputs: [{ name: "a", type: "number", default: 0 }, { name: "b", type: "number", default: 0 }] },
-  { id: "and", type: "and", category: "operators", label: "And", labelAr: "و" },
-  { id: "or", type: "or", category: "operators", label: "Or", labelAr: "أو" },
-  { id: "not", type: "not", category: "operators", label: "Not", labelAr: "ليس" },
-  { id: "join", type: "join", category: "operators", label: "Join", labelAr: "اربط", inputs: [{ name: "a", type: "string", default: "مرحباً" }, { name: "b", type: "string", default: " بالعالم" }] },
-  { id: "mod", type: "mod", category: "operators", label: "Mod", labelAr: "باقي القسمة", inputs: [{ name: "a", type: "number", default: 0 }, { name: "b", type: "number", default: 1 }] },
-  { id: "round", type: "round", category: "operators", label: "Round", labelAr: "تقريب", inputs: [{ name: "n", type: "number", default: 0 }] },
-  { id: "abs", type: "abs", category: "operators", label: "Abs", labelAr: "القيمة المطلقة", inputs: [{ name: "n", type: "number", default: 0 }] },
-  // Variables
-  { id: "set_var", type: "set_var", category: "variables", label: "Set variable", labelAr: "اجعل المتغير =", inputs: [{ name: "name", type: "string", default: "نقاط" }, { name: "value", type: "number", default: 0 }] },
-  { id: "change_var", type: "change_var", category: "variables", label: "Change variable", labelAr: "غيّر المتغير بمقدار", inputs: [{ name: "name", type: "string", default: "نقاط" }, { name: "value", type: "number", default: 1 }] },
-  { id: "show_var", type: "show_var", category: "variables", label: "Show variable", labelAr: "أظهر المتغير", inputs: [{ name: "name", type: "string", default: "نقاط" }] },
-  { id: "hide_var", type: "hide_var", category: "variables", label: "Hide variable", labelAr: "أخفِ المتغير", inputs: [{ name: "name", type: "string", default: "نقاط" }] },
-];
-
-const SPRITE_EMOJIS = ["🐱", "🐶", "🦊", "🐸", "🐻", "🐼", "🐧", "🦁", "🐰", "🐵", "🦄", "🐲", "🚀", "⭐", "🎈", "🏀", "⚽", "🎮", "🤖", "👾", "🦸", "🧙", "🧚", "🎪"];
-
-let blockIdCounter = 0;
-const uid = () => `b_${++blockIdCounter}_${Date.now()}`;
-
-const cloneBlock = (b: Block): Block => ({
-  ...b,
-  id: uid(),
-  values: b.values ? { ...b.values } : undefined,
-  inputs: b.inputs ? b.inputs.map(i => ({ ...i })) : undefined,
-});
-
+/* ═══════════════════ HELPERS ═══════════════════ */
 const defaultSprite = (): Sprite => ({
-  id: uid(),
-  name: "شخصية 1",
-  emoji: "🐱",
-  x: 200, y: 150,
-  rotation: 0, scale: 1, visible: true,
-  scripts: [],
-  costumes: ["🐱"],
-  currentCostume: 0,
+  id: uid(), name: "شخصية 1", nameEn: "Sprite 1",
+  emoji: "🐱", x: 240, y: 180, rotation: 0, scale: 1, visible: true,
+  scripts: [], costumes: ["🐱"], currentCostume: 0,
 });
 
-/* ═══════════════════ BLOCK COMPONENT ═══════════════════ */
-const BlockItem = memo(({ block, onRemove, onValueChange, depth = 0 }: {
+/* ═══════════════════ SCRATCH BLOCK SHAPE ═══════════════════ */
+const ScratchBlock = memo(({
+  block, category, lang, onRemove, onValueChange, isDragging, onDragStart,
+}: {
   block: Block;
-  onRemove: (id: string) => void;
-  onValueChange: (blockId: string, inputName: string, value: string | number) => void;
-  depth?: number;
+  category: typeof CATEGORIES[0] | undefined;
+  lang: Language;
+  onRemove?: (id: string) => void;
+  onValueChange?: (blockId: string, inputName: string, value: string | number) => void;
+  isDragging?: boolean;
+  onDragStart?: (e: React.DragEvent, block: Block) => void;
 }) => {
-  const cat = CATEGORIES.find(c => c.id === block.category);
+  const color = category?.color || "#888";
+  const darkerColor = `color-mix(in srgb, ${color} 80%, black)`;
+  const label = lang === "ar" ? block.labelAr : block.label;
+
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, x: 30 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -30 }}
-      className={`group relative rounded-xl border ${cat?.border || "border-border"} ${cat?.bg || "bg-surface-mid"} px-4 py-3 mb-2 cursor-grab active:cursor-grabbing select-none`}
-      style={{ marginRight: depth * 16 }}
+    <div
+      draggable
+      onDragStart={e => onDragStart?.(e, block)}
+      className={`group relative select-none cursor-grab active:cursor-grabbing transition-transform ${isDragging ? "opacity-50 scale-95" : ""}`}
+      style={{ marginBottom: 2 }}
     >
-      <div className="flex items-center gap-3 flex-wrap">
-        <span className={`font-bold text-sm ${cat?.text || "text-foreground"}`}>{block.labelAr}</span>
-        {block.inputs?.map(input => (
-          <div key={input.name} className="flex items-center gap-1">
-            {input.type === "dropdown" ? (
-              <select
-                className="bg-background/60 border border-border/50 rounded-lg px-2 py-1 text-xs text-foreground min-w-[80px]"
-                value={block.values?.[input.name] ?? input.default}
-                onChange={e => onValueChange(block.id, input.name, e.target.value)}
-              >
-                {input.options?.map(o => <option key={o} value={o}>{o}</option>)}
-              </select>
-            ) : (
-              <input
-                type={input.type === "number" ? "number" : "text"}
-                className="bg-background/60 border border-border/50 rounded-lg px-2 py-1 text-xs text-foreground w-16 text-center"
-                value={block.values?.[input.name] ?? input.default}
-                onChange={e => onValueChange(block.id, input.name, input.type === "number" ? Number(e.target.value) : e.target.value)}
-              />
-            )}
-          </div>
-        ))}
-        <button
-          onClick={() => onRemove(block.id)}
-          className="opacity-0 group-hover:opacity-100 transition-opacity mr-auto p-1 rounded hover:bg-destructive/20"
-        >
-          <Trash2 className="h-3 w-3 text-destructive" />
-        </button>
+      {/* Scratch-style puzzle block */}
+      <div
+        className="relative rounded-md px-3 py-2 min-h-[40px] flex items-center gap-2 flex-wrap shadow-sm"
+        style={{
+          backgroundColor: color,
+          borderLeft: `3px solid ${darkerColor}`,
+          borderBottom: `2px solid ${darkerColor}`,
+          color: "white",
+          fontSize: 13,
+          fontWeight: 700,
+        }}
+      >
+        {/* Top notch */}
+        <div
+          className="absolute top-0 rounded-b-sm"
+          style={{
+            left: lang === "ar" ? "auto" : 20,
+            right: lang === "ar" ? 20 : "auto",
+            width: 16, height: 4,
+            backgroundColor: darkerColor,
+          }}
+        />
+
+        {/* Grip handle */}
+        <GripVertical className="h-3 w-3 opacity-50 flex-shrink-0" />
+
+        {/* Render label with inline inputs */}
+        {(() => {
+          if (!block.inputs?.length) return <span>{label}</span>;
+          const parts = label.split(/%\d/);
+          const result: React.ReactNode[] = [];
+          parts.forEach((part, i) => {
+            if (part) result.push(<span key={`t${i}`}>{part}</span>);
+            if (i < (block.inputs?.length || 0)) {
+              const input = block.inputs![i];
+              result.push(
+                input.type === "dropdown" ? (
+                  <select
+                    key={input.name}
+                    className="rounded px-1.5 py-0.5 text-xs font-bold border-0 outline-none"
+                    style={{ backgroundColor: "rgba(255,255,255,0.25)", color: "white", minWidth: 60 }}
+                    value={block.values?.[input.name] ?? input.default}
+                    onChange={e => { e.stopPropagation(); onValueChange?.(block.id, input.name, e.target.value); }}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    {input.options?.map(o => <option key={o} value={o} style={{ color: "#333" }}>{o}</option>)}
+                  </select>
+                ) : (
+                  <input
+                    key={input.name}
+                    type={input.type === "number" ? "number" : "text"}
+                    className="rounded px-1.5 py-0.5 text-xs font-bold text-center border-0 outline-none"
+                    style={{
+                      backgroundColor: "rgba(255,255,255,0.9)",
+                      color: "#333",
+                      width: input.type === "number" ? 48 : 80,
+                    }}
+                    value={block.values?.[input.name] ?? input.default}
+                    onChange={e => {
+                      e.stopPropagation();
+                      onValueChange?.(block.id, input.name, input.type === "number" ? Number(e.target.value) : e.target.value);
+                    }}
+                    onClick={e => e.stopPropagation()}
+                  />
+                )
+              );
+            }
+          });
+          return result;
+        })()}
+
+        {/* Delete button */}
+        {onRemove && (
+          <button
+            onClick={e => { e.stopPropagation(); onRemove(block.id); }}
+            className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-black/20 flex-shrink-0"
+            style={{ marginInlineStart: "auto" }}
+          >
+            <X className="h-3 w-3" />
+          </button>
+        )}
+
+        {/* Bottom notch */}
+        <div
+          className="absolute bottom-[-4px] rounded-b-sm"
+          style={{
+            left: lang === "ar" ? "auto" : 20,
+            right: lang === "ar" ? 20 : "auto",
+            width: 16, height: 4,
+            backgroundColor: color,
+          }}
+        />
       </div>
-    </motion.div>
+    </div>
   );
 });
-BlockItem.displayName = "BlockItem";
+ScratchBlock.displayName = "ScratchBlock";
 
-/* ═══════════════════ STAGE CANVAS ═══════════════════ */
-const Stage = memo(({ sprites, isPlaying, stageColor }: { sprites: Sprite[]; isPlaying: boolean; stageColor: string }) => {
+/* ═══════════════════ STAGE ═══════════════════ */
+const Stage = memo(({
+  sprites, isPlaying, stageColor, onSpriteMove, lang,
+}: {
+  sprites: Sprite[];
+  isPlaying: boolean;
+  stageColor: string;
+  onSpriteMove: (idx: number, x: number, y: number) => void;
+  lang: Language;
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const draggingRef = useRef<{ idx: number; offsetX: number; offsetY: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -209,72 +164,137 @@ const Stage = memo(({ sprites, isPlaying, stageColor }: { sprites: Sprite[]; isP
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const draw = () => {
-      ctx.clearRect(0, 0, 480, 360);
-      ctx.fillStyle = stageColor;
-      ctx.fillRect(0, 0, 480, 360);
+    ctx.clearRect(0, 0, 480, 360);
+    ctx.fillStyle = stageColor;
+    ctx.fillRect(0, 0, 480, 360);
 
-      // Grid
-      ctx.strokeStyle = "rgba(255,255,255,0.05)";
-      ctx.lineWidth = 1;
-      for (let x = 0; x < 480; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 360); ctx.stroke(); }
-      for (let y = 0; y < 360; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(480, y); ctx.stroke(); }
+    // Grid
+    ctx.strokeStyle = "rgba(128,128,128,0.08)";
+    ctx.lineWidth = 1;
+    for (let x = 0; x < 480; x += 30) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 360); ctx.stroke(); }
+    for (let y = 0; y < 360; y += 30) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(480, y); ctx.stroke(); }
 
-      // Center crosshair
-      ctx.strokeStyle = "rgba(255,255,255,0.1)";
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath(); ctx.moveTo(240, 0); ctx.lineTo(240, 360); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(0, 180); ctx.lineTo(480, 180); ctx.stroke();
-      ctx.setLineDash([]);
+    // Center crosshair
+    ctx.strokeStyle = "rgba(128,128,128,0.15)";
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(240, 0); ctx.lineTo(240, 360); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, 180); ctx.lineTo(480, 180); ctx.stroke();
+    ctx.setLineDash([]);
 
-      sprites.forEach(sprite => {
-        if (!sprite.visible) return;
-        ctx.save();
-        ctx.translate(sprite.x, sprite.y);
-        ctx.rotate((sprite.rotation * Math.PI) / 180);
-        ctx.scale(sprite.scale, sprite.scale);
-        ctx.font = "48px serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(sprite.emoji, 0, 0);
+    sprites.forEach(sprite => {
+      if (!sprite.visible) return;
+      ctx.save();
+      ctx.translate(sprite.x, sprite.y);
+      ctx.rotate((sprite.rotation * Math.PI) / 180);
+      ctx.scale(sprite.scale, sprite.scale);
 
-        if (sprite.sayText) {
-          ctx.rotate(-(sprite.rotation * Math.PI) / 180);
-          ctx.font = "bold 14px Cairo, sans-serif";
-          const metrics = ctx.measureText(sprite.sayText);
-          const w = metrics.width + 20;
-          ctx.fillStyle = "white";
-          ctx.strokeStyle = "#333";
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.roundRect(-w / 2, -55, w, 30, 8);
-          ctx.fill();
-          ctx.stroke();
-          ctx.fillStyle = "#333";
-          ctx.textAlign = "center";
-          ctx.fillText(sprite.sayText, 0, -38);
-        }
-        ctx.restore();
-      });
+      // Draw emoji with 3D shadow effect
+      ctx.shadowColor = "rgba(0,0,0,0.3)";
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetX = 3;
+      ctx.shadowOffsetY = 3;
+      ctx.font = "48px serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(sprite.emoji, 0, 0);
+      ctx.shadowColor = "transparent";
 
-      if (isPlaying) {
-        ctx.fillStyle = "rgba(0,255,100,0.8)";
+      // Say bubble
+      if (sprite.sayText) {
+        ctx.rotate(-(sprite.rotation * Math.PI) / 180);
+        ctx.font = "bold 13px 'Cairo', sans-serif";
+        const metrics = ctx.measureText(sprite.sayText);
+        const w = Math.max(metrics.width + 24, 40);
+        const h = 32;
+        const bx = -w / 2;
+        const by = -58;
+
+        // Bubble
+        ctx.fillStyle = "white";
+        ctx.strokeStyle = "#999";
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.arc(16, 16, 6, 0, Math.PI * 2);
+        ctx.roundRect(bx, by, w, h, 10);
         ctx.fill();
+        ctx.stroke();
+        // Tail
+        ctx.fillStyle = "white";
+        ctx.beginPath();
+        ctx.moveTo(-4, by + h);
+        ctx.lineTo(4, by + h);
+        ctx.lineTo(0, by + h + 8);
+        ctx.fill();
+        ctx.strokeStyle = "#999";
+        ctx.beginPath();
+        ctx.moveTo(-4, by + h);
+        ctx.lineTo(0, by + h + 8);
+        ctx.lineTo(4, by + h);
+        ctx.stroke();
+
+        ctx.fillStyle = "#333";
+        ctx.textAlign = "center";
+        ctx.fillText(sprite.sayText, 0, by + h / 2 + 1);
       }
-    };
-    draw();
+      ctx.restore();
+    });
+
+    // Playing indicator
+    if (isPlaying) {
+      ctx.fillStyle = "rgba(0,200,83,0.9)";
+      ctx.beginPath();
+      ctx.arc(16, 16, 6, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }, [sprites, isPlaying, stageColor]);
 
+  const getCanvasCoords = (e: React.MouseEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = 480 / rect.width;
+    const scaleY = 360 / rect.height;
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
+    };
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const { x, y } = getCanvasCoords(e);
+    for (let i = sprites.length - 1; i >= 0; i--) {
+      const s = sprites[i];
+      if (!s.visible) continue;
+      const dist = Math.sqrt((s.x - x) ** 2 + (s.y - y) ** 2);
+      if (dist < 30 * s.scale) {
+        draggingRef.current = { idx: i, offsetX: s.x - x, offsetY: s.y - y };
+        break;
+      }
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!draggingRef.current) return;
+    const { x, y } = getCanvasCoords(e);
+    const { idx, offsetX, offsetY } = draggingRef.current;
+    onSpriteMove(idx, Math.max(0, Math.min(480, x + offsetX)), Math.max(0, Math.min(360, y + offsetY)));
+  };
+
+  const handleMouseUp = () => { draggingRef.current = null; };
+
   return (
-    <canvas
-      ref={canvasRef}
-      width={480}
-      height={360}
-      className="w-full h-full rounded-xl"
-      style={{ imageRendering: "auto" }}
-    />
+    <div ref={containerRef} className="relative">
+      <canvas
+        ref={canvasRef}
+        width={480}
+        height={360}
+        className="w-full h-full rounded-lg cursor-pointer"
+        style={{ imageRendering: "auto" }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      />
+    </div>
   );
 });
 Stage.displayName = "Stage";
@@ -285,11 +305,20 @@ const GameLearning = () => {
   const [activeSprite, setActiveSprite] = useState(0);
   const [activeCategory, setActiveCategory] = useState("motion");
   const [isPlaying, setIsPlaying] = useState(false);
-  const [stageColor, setStageColor] = useState("#1a1a2e");
+  const [stageColor, setStageColor] = useState("#ffffff");
+  const [lang, setLang] = useState<Language>("ar");
+  const [activeTab, setActiveTab] = useState<"code" | "costumes" | "sounds">("code");
+  const [showSpriteSelector, setShowSpriteSelector] = useState(false);
+  const [spriteFilterCat, setSpriteFilterCat] = useState("all");
+  const [showBackdropSelector, setShowBackdropSelector] = useState(false);
   const [history, setHistory] = useState<Sprite[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const animFrameRef = useRef<number>(0);
+  const [stageZoom, setStageZoom] = useState(1);
   const runningRef = useRef(false);
+  const scriptAreaRef = useRef<HTMLDivElement>(null);
+
+  const t = useCallback((ar: string, en: string) => lang === "ar" ? ar : en, [lang]);
+  const dir = lang === "ar" ? "rtl" : "ltr";
 
   const saveHistory = useCallback(() => {
     const snap = JSON.parse(JSON.stringify(sprites));
@@ -311,6 +340,7 @@ const GameLearning = () => {
     }
   }, [history, historyIndex]);
 
+  /* ─── Block Management ─── */
   const addBlockToScript = useCallback((template: Block) => {
     const newBlock = cloneBlock(template);
     newBlock.values = {};
@@ -351,16 +381,60 @@ const GameLearning = () => {
     });
   }, [activeSprite]);
 
-  const addSprite = useCallback((emoji: string) => {
+  /* ─── Drag & Drop ─── */
+  const handlePaletteDragStart = useCallback((e: React.DragEvent, block: Block) => {
+    e.dataTransfer.setData("application/json", JSON.stringify(block));
+    e.dataTransfer.effectAllowed = "copy";
+  }, []);
+
+  const handleScriptDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  }, []);
+
+  const handleScriptDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    try {
+      const blockData = JSON.parse(e.dataTransfer.getData("application/json")) as Block;
+      addBlockToScript(blockData);
+    } catch {}
+  }, [addBlockToScript]);
+
+  /* ─── Reorder blocks via drag ─── */
+  const [dragBlockIdx, setDragBlockIdx] = useState<number | null>(null);
+
+  const handleScriptBlockDragStart = useCallback((e: React.DragEvent, idx: number) => {
+    setDragBlockIdx(idx);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(idx));
+  }, []);
+
+  const handleScriptBlockDrop = useCallback((e: React.DragEvent, dropIdx: number) => {
+    e.preventDefault();
+    if (dragBlockIdx === null || dragBlockIdx === dropIdx) return;
+    setSprites(prev => {
+      const next = [...prev];
+      const s = { ...next[activeSprite] };
+      const scripts = [...s.scripts];
+      const script = [...(scripts[0] || [])];
+      const [moved] = script.splice(dragBlockIdx, 1);
+      script.splice(dropIdx, 0, moved);
+      scripts[0] = script;
+      s.scripts = scripts;
+      next[activeSprite] = s;
+      return next;
+    });
+    setDragBlockIdx(null);
+    saveHistory();
+  }, [dragBlockIdx, activeSprite, saveHistory]);
+
+  /* ─── Sprite Management ─── */
+  const addSprite = useCallback((emoji: string, nameAr: string, nameEn: string) => {
     const s: Sprite = {
-      id: uid(),
-      name: `شخصية ${sprites.length + 1}`,
-      emoji,
-      x: 200 + Math.random() * 80, y: 150 + Math.random() * 60,
-      rotation: 0, scale: 1, visible: true,
-      scripts: [],
-      costumes: [emoji],
-      currentCostume: 0,
+      id: uid(), name: `${nameAr}`, nameEn,
+      emoji, x: 240 + (Math.random() - 0.5) * 100, y: 180 + (Math.random() - 0.5) * 80,
+      rotation: 0, scale: 1, visible: true, scripts: [],
+      costumes: [emoji], currentCostume: 0,
     };
     setSprites(prev => [...prev, s]);
     setActiveSprite(sprites.length);
@@ -370,15 +444,22 @@ const GameLearning = () => {
   const deleteSprite = useCallback((index: number) => {
     if (sprites.length <= 1) return;
     setSprites(prev => prev.filter((_, i) => i !== index));
-    setActiveSprite(Math.max(0, index - 1));
+    setActiveSprite(prev => Math.max(0, prev >= index ? prev - 1 : prev));
     saveHistory();
   }, [sprites.length, saveHistory]);
+
+  const moveSprite = useCallback((idx: number, x: number, y: number) => {
+    setSprites(prev => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], x, y };
+      return next;
+    });
+  }, []);
 
   /* ─── Execution Engine ─── */
   const executeBlock = useCallback(async (block: Block, sprite: Sprite, spriteIndex: number): Promise<void> => {
     if (!runningRef.current) return;
     const val = (name: string, fallback: number | string = 0) => block.values?.[name] ?? block.inputs?.find(i => i.name === name)?.default ?? fallback;
-
     const updateSprite = (updates: Partial<Sprite>) => {
       setSprites(prev => {
         const next = [...prev];
@@ -391,9 +472,9 @@ const GameLearning = () => {
       case "move": {
         const steps = Number(val("steps", 10));
         const rad = (sprite.rotation * Math.PI) / 180;
-        updateSprite({ x: sprite.x + Math.cos(rad) * steps, y: sprite.y + Math.sin(rad) * steps });
         sprite.x += Math.cos(rad) * steps;
         sprite.y += Math.sin(rad) * steps;
+        updateSprite({ x: sprite.x, y: sprite.y });
         break;
       }
       case "turn_right":
@@ -406,7 +487,12 @@ const GameLearning = () => {
         break;
       case "goto_xy":
         sprite.x = Number(val("x", 0)) + 240;
-        sprite.y = Number(val("y", 0)) + 180;
+        sprite.y = 180 - Number(val("y", 0));
+        updateSprite({ x: sprite.x, y: sprite.y });
+        break;
+      case "goto_random":
+        sprite.x = Math.random() * 480;
+        sprite.y = Math.random() * 360;
         updateSprite({ x: sprite.x, y: sprite.y });
         break;
       case "set_x":
@@ -414,7 +500,7 @@ const GameLearning = () => {
         updateSprite({ x: sprite.x });
         break;
       case "set_y":
-        sprite.y = Number(val("y", 0)) + 180;
+        sprite.y = 180 - Number(val("y", 0));
         updateSprite({ y: sprite.y });
         break;
       case "change_x":
@@ -422,12 +508,14 @@ const GameLearning = () => {
         updateSprite({ x: sprite.x });
         break;
       case "change_y":
-        sprite.y += Number(val("dy", 10));
+        sprite.y -= Number(val("dy", 10));
         updateSprite({ y: sprite.y });
         break;
       case "set_rotation":
         sprite.rotation = Number(val("degrees", 90));
         updateSprite({ rotation: sprite.rotation });
+        break;
+      case "point_towards":
         break;
       case "bounce":
         if (sprite.x <= 24 || sprite.x >= 456) sprite.rotation = 180 - sprite.rotation;
@@ -437,7 +525,7 @@ const GameLearning = () => {
       case "glide": {
         const secs = Number(val("secs", 1));
         const tx = Number(val("x", 0)) + 240;
-        const ty = Number(val("y", 0)) + 180;
+        const ty = 180 - Number(val("y", 0));
         const sx = sprite.x, sy = sprite.y;
         const steps = Math.max(1, Math.round(secs * 30));
         for (let i = 1; i <= steps && runningRef.current; i++) {
@@ -449,29 +537,25 @@ const GameLearning = () => {
         break;
       }
       case "say":
-        updateSprite({ sayText: String(val("message", "مرحباً!")) });
-        sprite.sayText = String(val("message", "مرحباً!"));
+        updateSprite({ sayText: String(val("message", "Hello!")) });
+        sprite.sayText = String(val("message", "Hello!"));
         break;
       case "say_for": {
-        const msg = String(val("message", "مرحباً!"));
+        const msg = String(val("message", "Hello!"));
         const secs = Number(val("secs", 2));
         updateSprite({ sayText: msg });
-        sprite.sayText = msg;
         await new Promise(r => setTimeout(r, secs * 1000));
         updateSprite({ sayText: undefined });
-        sprite.sayText = undefined;
         break;
       }
       case "think":
-        updateSprite({ sayText: `💭 ${val("message", "همم...")}` });
+        updateSprite({ sayText: `💭 ${val("message", "Hmm...")}` });
         break;
       case "show":
-        updateSprite({ visible: true });
-        sprite.visible = true;
+        updateSprite({ visible: true }); sprite.visible = true;
         break;
       case "hide":
-        updateSprite({ visible: false });
-        sprite.visible = false;
+        updateSprite({ visible: false }); sprite.visible = false;
         break;
       case "set_size":
         sprite.scale = Number(val("size", 100)) / 100;
@@ -485,10 +569,30 @@ const GameLearning = () => {
         await new Promise(r => setTimeout(r, Number(val("secs", 1)) * 1000));
         break;
       case "repeat": {
-        const times = Number(val("times", 10));
-        // For repeat, we'd need child blocks - simplified version
+        // Simple repeat: re-execute previous blocks
         break;
       }
+      case "play_sound": {
+        const soundName = String(val("sound", "pop"));
+        try {
+          const ctx = new AudioContext();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          const freqs: Record<string, number> = { pop: 600, meow: 800, beep: 440, drum: 200, bell: 1000 };
+          osc.frequency.value = freqs[soundName] || 440;
+          osc.type = soundName === "drum" ? "triangle" : soundName === "bell" ? "sine" : "square";
+          gain.gain.setValueAtTime(0.3, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.3);
+        } catch {}
+        break;
+      }
+      case "stop":
+        runningRef.current = false;
+        break;
       default:
         break;
     }
@@ -520,224 +624,471 @@ const GameLearning = () => {
   const resetSprites = useCallback(() => {
     stopScripts();
     setSprites(prev => prev.map(s => ({
-      ...s, x: 200, y: 150, rotation: 0, scale: 1, visible: true, sayText: undefined,
+      ...s, x: 240, y: 180, rotation: 0, scale: 1, visible: true, sayText: undefined,
     })));
   }, [stopScripts]);
 
   const currentSprite = sprites[activeSprite];
-  const filteredBlocks = BLOCK_TEMPLATES.filter(b => b.category === activeCategory);
+  const filteredBlocks = useMemo(() => BLOCK_TEMPLATES.filter(b => b.category === activeCategory), [activeCategory]);
   const currentCat = CATEGORIES.find(c => c.id === activeCategory);
 
-  const [showSpriteSelector, setShowSpriteSelector] = useState(false);
+  const filteredSpriteLib = useMemo(() => {
+    if (spriteFilterCat === "all") return SPRITE_LIBRARY;
+    return SPRITE_LIBRARY.filter(s => s.category === spriteFilterCat);
+  }, [spriteFilterCat]);
 
   return (
-    <div className="min-h-screen bg-background pt-20">
-      {/* Header */}
-      <div className="bg-surface-low border-b border-border">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Gamepad2 className="h-6 w-6 text-primary" />
-            <h1 className="font-display font-bold text-lg text-foreground">بيئة البرمجة بالمكعبات</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={undo} title="تراجع">
-              <Undo2 className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={redo} title="إعادة">
-              <Redo2 className="h-4 w-4" />
-            </Button>
-            <div className="w-px h-6 bg-border mx-1" />
-            <Button
-              size="sm"
-              onClick={runScripts}
-              disabled={isPlaying}
-              className="bg-green-600 hover:bg-green-700 text-white gap-2"
-            >
-              <Flag className="h-4 w-4" />
-              تشغيل
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={stopScripts}
-              disabled={!isPlaying}
-              className="gap-2"
-            >
-              <Square className="h-4 w-4" />
-              إيقاف
-            </Button>
-            <Button size="sm" variant="outline" onClick={resetSprites} className="gap-2">
-              <RotateCcw className="h-4 w-4" />
-              إعادة ضبط
-            </Button>
+    <div className="min-h-screen bg-background" dir={dir}>
+      {/* ── Top Toolbar (Scratch-style) ── */}
+      <div className="pt-16 sm:pt-20">
+        <div className="border-b" style={{ backgroundColor: "hsl(var(--surface-low))", borderColor: "hsl(var(--border))" }}>
+          <div className="container mx-auto px-2 sm:px-4 py-2 flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Gamepad2 className="h-5 w-5 text-primary" />
+              <h1 className="font-display font-bold text-sm sm:text-lg text-foreground">
+                {t("بيئة البرمجة بالمكعبات", "Block Programming IDE")}
+              </h1>
+            </div>
+
+            <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+              {/* Language Toggle */}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setLang(l => l === "ar" ? "en" : "ar")}
+                className="gap-1 text-xs"
+              >
+                <Globe className="h-3.5 w-3.5" />
+                {lang === "ar" ? "EN" : "عربي"}
+              </Button>
+
+              <div className="w-px h-5 bg-border hidden sm:block" />
+
+              <Button variant="ghost" size="icon" onClick={undo} title={t("تراجع", "Undo")} className="h-8 w-8">
+                <Undo2 className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={redo} title={t("إعادة", "Redo")} className="h-8 w-8">
+                <Redo2 className="h-4 w-4" />
+              </Button>
+
+              <div className="w-px h-5 bg-border hidden sm:block" />
+
+              <Button
+                size="sm"
+                onClick={runScripts}
+                disabled={isPlaying}
+                className="gap-1.5 text-xs sm:text-sm"
+                style={{ backgroundColor: "#4CAF50", color: "white" }}
+              >
+                <Flag className="h-4 w-4" />
+                <span className="hidden sm:inline">{t("تشغيل", "Run")}</span>
+              </Button>
+              <Button
+                size="sm"
+                onClick={stopScripts}
+                disabled={!isPlaying}
+                className="gap-1.5 text-xs sm:text-sm"
+                style={{ backgroundColor: "#f44336", color: "white" }}
+              >
+                <Square className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{t("إيقاف", "Stop")}</span>
+              </Button>
+              <Button size="sm" variant="outline" onClick={resetSprites} className="gap-1.5 text-xs">
+                <RotateCcw className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{t("إعادة ضبط", "Reset")}</span>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Main IDE */}
-      <div className="flex h-[calc(100vh-8rem)]">
-        {/* Block Palette */}
-        <div className="w-72 border-l border-border bg-surface-low flex flex-col">
-          {/* Categories */}
-          <div className="p-2 border-b border-border overflow-x-auto">
-            <div className="flex flex-wrap gap-1">
-              {CATEGORIES.map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveCategory(cat.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    activeCategory === cat.id
-                      ? `bg-gradient-to-l ${cat.color} text-white shadow-lg`
-                      : `${cat.bg} ${cat.text} hover:opacity-80`
-                  }`}
-                >
-                  {cat.labelAr}
-                </button>
-              ))}
-            </div>
+      {/* ── Main IDE Layout ── */}
+      <div className="flex flex-col lg:flex-row" style={{ height: "calc(100vh - 7rem)" }}>
+
+        {/* ─ LEFT: Block Palette ─ */}
+        <div className="w-full lg:w-72 border-b lg:border-b-0 lg:border-e flex flex-col overflow-hidden" style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--surface-low))" }}>
+          {/* Category Buttons - vertical sidebar like Scratch */}
+          <div className="flex lg:flex-col p-1.5 gap-1 overflow-x-auto lg:overflow-x-visible border-b lg:border-b-0 lg:border-e" style={{ borderColor: "hsl(var(--border))" }}>
+            {CATEGORIES.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex-shrink-0"
+                style={{
+                  backgroundColor: activeCategory === cat.id ? cat.color : cat.bgColor,
+                  color: activeCategory === cat.id ? "white" : cat.color,
+                  boxShadow: activeCategory === cat.id ? `0 2px 8px ${cat.color}40` : "none",
+                }}
+              >
+                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: activeCategory === cat.id ? "rgba(255,255,255,0.4)" : cat.color }} />
+                {lang === "ar" ? cat.labelAr : cat.label}
+              </button>
+            ))}
           </div>
 
-          {/* Blocks */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-1">
-            <AnimatePresence mode="popLayout">
-              {filteredBlocks.map(block => (
-                <motion.div
-                  key={block.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  onClick={() => addBlockToScript(block)}
-                  className={`cursor-pointer rounded-xl border ${currentCat?.border} ${currentCat?.bg} px-4 py-3 text-sm font-bold ${currentCat?.text} hover:scale-[1.02] active:scale-[0.98] transition-transform select-none`}
-                >
-                  <div className="flex items-center gap-2">
-                    <Plus className="h-3 w-3 opacity-50" />
-                    <span>{block.labelAr}</span>
-                  </div>
-                  {block.inputs && (
-                    <div className="flex gap-1 mt-1 flex-wrap">
-                      {block.inputs.map(i => (
-                        <span key={i.name} className="text-[10px] bg-background/30 rounded px-1.5 py-0.5 opacity-70">
-                          {i.name}: {String(i.default)}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-            </AnimatePresence>
+          {/* Block List */}
+          <div className="flex-1 overflow-y-auto p-2 space-y-1 min-h-0 max-h-[200px] lg:max-h-none">
+            {filteredBlocks.map(block => (
+              <ScratchBlock
+                key={block.id}
+                block={block}
+                category={currentCat}
+                lang={lang}
+                onDragStart={handlePaletteDragStart}
+              />
+            ))}
           </div>
         </div>
 
-        {/* Script Area */}
-        <div className="flex-1 flex flex-col border-l border-border">
-          <div className="px-4 py-2 bg-surface-mid/50 border-b border-border flex items-center gap-2">
-            <span className="text-xs text-muted-foreground font-bold">سكربتات:</span>
-            <span className="text-xs font-bold text-foreground">{currentSprite?.name}</span>
-            <span className="text-lg">{currentSprite?.emoji}</span>
+        {/* ─ CENTER: Tabs + Script Area ─ */}
+        <div className="flex-1 flex flex-col min-w-0 border-e" style={{ borderColor: "hsl(var(--border))" }}>
+          {/* Tabs: Code / Costumes / Sounds */}
+          <div className="flex items-center border-b px-2" style={{ backgroundColor: "hsl(var(--surface-mid))", borderColor: "hsl(var(--border))" }}>
+            {[
+              { id: "code" as const, icon: "💻", labelAr: "الكود", labelEn: "Code" },
+              { id: "costumes" as const, icon: "🎨", labelAr: "المظاهر", labelEn: "Costumes" },
+              { id: "sounds" as const, icon: "🔊", labelAr: "الأصوات", labelEn: "Sounds" },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-bold transition-all border-b-2"
+                style={{
+                  borderColor: activeTab === tab.id ? "hsl(var(--primary))" : "transparent",
+                  color: activeTab === tab.id ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))",
+                  backgroundColor: activeTab === tab.id ? "hsl(var(--background))" : "transparent",
+                }}
+              >
+                <span>{tab.icon}</span>
+                {lang === "ar" ? tab.labelAr : tab.labelEn}
+              </button>
+            ))}
+
+            {/* Current sprite indicator */}
+            <div className="flex items-center gap-2 px-3" style={{ marginInlineStart: "auto" }}>
+              <span className="text-lg">{currentSprite?.emoji}</span>
+              <span className="text-xs font-bold text-foreground">{lang === "ar" ? currentSprite?.name : currentSprite?.nameEn}</span>
+            </div>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 bg-[repeating-linear-gradient(0deg,transparent,transparent_19px,hsl(var(--border)/0.3)_20px),repeating-linear-gradient(90deg,transparent,transparent_19px,hsl(var(--border)/0.3)_20px)]">
-            {currentSprite?.scripts[0]?.length ? (
-              <AnimatePresence>
-                {currentSprite.scripts[0].map(block => (
-                  <BlockItem
-                    key={block.id}
-                    block={block}
-                    onRemove={removeBlock}
-                    onValueChange={updateBlockValue}
-                  />
-                ))}
-              </AnimatePresence>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                <div className="text-6xl mb-4 opacity-20">🧩</div>
-                <p className="text-sm font-bold">اسحب المكعبات هنا لبناء برنامجك</p>
-                <p className="text-xs mt-1 opacity-60">أو اضغط على أي مكعب من القائمة لإضافته</p>
+
+          {/* Script/Costumes/Sounds Area */}
+          <div
+            ref={scriptAreaRef}
+            className="flex-1 overflow-y-auto p-4 min-h-0"
+            style={{
+              backgroundColor: "hsl(var(--background))",
+              backgroundImage: `
+                linear-gradient(hsl(var(--border) / 0.15) 1px, transparent 1px),
+                linear-gradient(90deg, hsl(var(--border) / 0.15) 1px, transparent 1px)
+              `,
+              backgroundSize: "20px 20px",
+            }}
+            onDragOver={handleScriptDragOver}
+            onDrop={handleScriptDrop}
+          >
+            {activeTab === "code" && (
+              <>
+                {currentSprite?.scripts[0]?.length ? (
+                  <div className="space-y-0.5">
+                    {currentSprite.scripts[0].map((block, idx) => (
+                      <div
+                        key={block.id}
+                        onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+                        onDrop={e => { e.stopPropagation(); handleScriptBlockDrop(e, idx); }}
+                      >
+                        <ScratchBlock
+                          block={block}
+                          category={CATEGORIES.find(c => c.id === block.category)}
+                          lang={lang}
+                          onRemove={removeBlock}
+                          onValueChange={updateBlockValue}
+                          onDragStart={(e) => handleScriptBlockDragStart(e, idx)}
+                          isDragging={dragBlockIdx === idx}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                    <div className="text-6xl mb-4 opacity-20">🧩</div>
+                    <p className="text-sm font-bold">{t("اسحب المكعبات هنا لبناء برنامجك", "Drag blocks here to build your program")}</p>
+                    <p className="text-xs mt-1 opacity-60">{t("أو اضغط على أي مكعب من القائمة", "Or click any block from the palette")}</p>
+                  </div>
+                )}
+              </>
+            )}
+
+            {activeTab === "costumes" && (
+              <div className="text-center py-8">
+                <div className="text-6xl mb-4">{currentSprite?.emoji}</div>
+                <p className="text-sm text-muted-foreground font-bold">
+                  {t("المظهر الحالي", "Current Costume")}: costume1
+                </p>
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  {currentSprite?.costumes.map((c, i) => (
+                    <div
+                      key={i}
+                      className="w-20 h-20 rounded-lg flex items-center justify-center text-3xl border-2 cursor-pointer"
+                      style={{
+                        borderColor: i === currentSprite.currentCostume ? "hsl(var(--primary))" : "hsl(var(--border))",
+                        backgroundColor: "hsl(var(--card))",
+                      }}
+                    >
+                      {c}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "sounds" && (
+              <div className="text-center py-8">
+                <div className="text-6xl mb-4">🔊</div>
+                <p className="text-sm text-muted-foreground font-bold">{t("الأصوات المتاحة", "Available Sounds")}</p>
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  {["pop", "meow", "beep", "drum", "bell"].map(sound => (
+                    <button
+                      key={sound}
+                      onClick={() => {
+                        try {
+                          const ctx = new AudioContext();
+                          const osc = ctx.createOscillator();
+                          const gain = ctx.createGain();
+                          osc.connect(gain);
+                          gain.connect(ctx.destination);
+                          const freqs: Record<string, number> = { pop: 600, meow: 800, beep: 440, drum: 200, bell: 1000 };
+                          osc.frequency.value = freqs[sound] || 440;
+                          gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                          osc.start();
+                          osc.stop(ctx.currentTime + 0.3);
+                        } catch {}
+                      }}
+                      className="px-4 py-3 rounded-lg text-sm font-bold border cursor-pointer transition-all hover:scale-105"
+                      style={{
+                        borderColor: "hsl(var(--border))",
+                        backgroundColor: "hsl(var(--card))",
+                        color: "hsl(var(--foreground))",
+                      }}
+                    >
+                      🔊 {sound}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Stage + Sprites */}
-        <div className="w-[520px] flex flex-col border-l border-border">
-          {/* Stage */}
-          <div className="p-4 bg-surface-low">
-            <div className="rounded-2xl overflow-hidden border-2 border-border shadow-xl aspect-[4/3]">
-              <Stage sprites={sprites} isPlaying={isPlaying} stageColor={stageColor} />
+        {/* ─ RIGHT: Stage + Sprite Panel ─ */}
+        <div className="w-full lg:w-[420px] xl:w-[480px] flex flex-col min-h-0">
+          {/* Stage Controls */}
+          <div className="flex items-center gap-2 px-3 py-1.5 border-b" style={{ backgroundColor: "hsl(var(--surface-mid))", borderColor: "hsl(var(--border))" }}>
+            <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                onClick={runScripts}
+                disabled={isPlaying}
+                className="h-7 w-7 p-0 rounded-full"
+                style={{ backgroundColor: "#4CAF50" }}
+              >
+                <Flag className="h-3.5 w-3.5 text-white" />
+              </Button>
+              <Button
+                size="sm"
+                onClick={stopScripts}
+                disabled={!isPlaying}
+                className="h-7 w-7 p-0 rounded-full"
+                style={{ backgroundColor: "#f44336" }}
+              >
+                <Square className="h-3 w-3 text-white" />
+              </Button>
+            </div>
+            <div className="flex-1" />
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setStageZoom(z => Math.max(0.5, z - 0.25))}>
+              <ZoomOut className="h-3.5 w-3.5" />
+            </Button>
+            <span className="text-xs text-muted-foreground font-bold">{Math.round(stageZoom * 100)}%</span>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setStageZoom(z => Math.min(2, z + 0.25))}>
+              <ZoomIn className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+
+          {/* Stage Canvas */}
+          <div className="p-2 sm:p-3" style={{ backgroundColor: "hsl(var(--surface-low))" }}>
+            <div
+              className="rounded-xl overflow-hidden border-2 shadow-lg mx-auto"
+              style={{
+                borderColor: "hsl(var(--border))",
+                transform: `scale(${stageZoom})`,
+                transformOrigin: "top center",
+                maxWidth: "100%",
+                aspectRatio: "4/3",
+              }}
+            >
+              <Stage sprites={sprites} isPlaying={isPlaying} stageColor={stageColor} onSpriteMove={moveSprite} lang={lang} />
             </div>
           </div>
 
-          {/* Stage Color */}
-          <div className="px-4 py-2 flex items-center gap-3 border-b border-border bg-surface-mid/30">
-            <span className="text-xs text-muted-foreground font-bold">لون المسرح:</span>
-            <input
-              type="color"
-              value={stageColor}
-              onChange={e => setStageColor(e.target.value)}
-              className="h-6 w-8 rounded cursor-pointer border-0"
-            />
-            <div className="mr-auto flex items-center gap-2 text-xs text-muted-foreground">
-              <span>x: {Math.round(sprites[activeSprite]?.x - 240)}</span>
-              <span>y: {Math.round(sprites[activeSprite]?.y - 180)}</span>
+          {/* Sprite Properties Bar */}
+          <div className="px-3 py-1.5 flex items-center gap-3 border-y text-xs flex-wrap" style={{ backgroundColor: "hsl(var(--card))", borderColor: "hsl(var(--border))" }}>
+            <div className="flex items-center gap-1">
+              <span className="text-muted-foreground font-bold">{t("الشخصية", "Sprite")}</span>
+              <input
+                className="bg-transparent border rounded px-1.5 py-0.5 w-20 text-foreground text-xs"
+                style={{ borderColor: "hsl(var(--border))" }}
+                value={lang === "ar" ? currentSprite?.name : currentSprite?.nameEn}
+                onChange={e => {
+                  setSprites(prev => {
+                    const next = [...prev];
+                    if (lang === "ar") next[activeSprite] = { ...next[activeSprite], name: e.target.value };
+                    else next[activeSprite] = { ...next[activeSprite], nameEn: e.target.value };
+                    return next;
+                  });
+                }}
+              />
             </div>
+            <span className="text-muted-foreground">x: <b className="text-foreground">{Math.round((currentSprite?.x || 240) - 240)}</b></span>
+            <span className="text-muted-foreground">y: <b className="text-foreground">{Math.round(180 - (currentSprite?.y || 180))}</b></span>
+            <span className="text-muted-foreground">{t("الحجم", "Size")}: <b className="text-foreground">{Math.round((currentSprite?.scale || 1) * 100)}</b></span>
+            <span className="text-muted-foreground">{t("الاتجاه", "Dir")}: <b className="text-foreground">{Math.round(currentSprite?.rotation || 0)}°</b></span>
+            <button
+              onClick={() => {
+                setSprites(prev => {
+                  const next = [...prev];
+                  next[activeSprite] = { ...next[activeSprite], visible: !next[activeSprite].visible };
+                  return next;
+                });
+              }}
+              className="p-1"
+            >
+              {currentSprite?.visible ? <Eye className="h-3.5 w-3.5 text-primary" /> : <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />}
+            </button>
           </div>
 
           {/* Sprite List */}
-          <div className="flex-1 overflow-y-auto p-3">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-muted-foreground">الشخصيات ({sprites.length})</span>
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-xs gap-1"
-                onClick={() => setShowSpriteSelector(!showSpriteSelector)}
-              >
-                <Plus className="h-3 w-3" />
-                إضافة
-              </Button>
+          <div className="flex-1 overflow-y-auto p-2 min-h-0" style={{ backgroundColor: "hsl(var(--background))" }}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-muted-foreground">{t("الشخصيات", "Sprites")} ({sprites.length})</span>
+              <div className="flex gap-1">
+                <Button
+                  size="sm" variant="outline" className="text-xs gap-1 h-7"
+                  onClick={() => setShowSpriteSelector(!showSpriteSelector)}
+                >
+                  <Plus className="h-3 w-3" />
+                  {t("إضافة شخصية", "Add Sprite")}
+                </Button>
+                <Button
+                  size="sm" variant="outline" className="text-xs gap-1 h-7"
+                  onClick={() => setShowBackdropSelector(!showBackdropSelector)}
+                >
+                  🎭 {t("الخلفية", "Backdrop")}
+                </Button>
+              </div>
             </div>
 
-            {showSpriteSelector && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="mb-3 p-3 rounded-xl bg-surface-mid border border-border"
-              >
-                <div className="grid grid-cols-8 gap-1">
-                  {SPRITE_EMOJIS.map(emoji => (
-                    <button
-                      key={emoji}
-                      onClick={() => { addSprite(emoji); setShowSpriteSelector(false); }}
-                      className="text-2xl p-2 rounded-lg hover:bg-surface-high transition-colors"
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              </motion.div>
-            )}
+            {/* Backdrop Selector */}
+            <AnimatePresence>
+              {showBackdropSelector && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-2 p-2 rounded-lg border"
+                  style={{ backgroundColor: "hsl(var(--card))", borderColor: "hsl(var(--border))" }}
+                >
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {BACKDROP_LIBRARY.map(bd => (
+                      <button
+                        key={bd.id}
+                        onClick={() => { setStageColor(bd.color); setShowBackdropSelector(false); }}
+                        className="rounded-lg p-1.5 text-center text-[10px] font-bold border hover:scale-105 transition-transform"
+                        style={{
+                          backgroundColor: bd.color,
+                          borderColor: stageColor === bd.color ? "hsl(var(--primary))" : "transparent",
+                          color: ["#ffffff", "#E8F4FD", "#F5DEB3", "#EDC9AF", "#87CEEB"].includes(bd.color) ? "#333" : "#fff",
+                        }}
+                      >
+                        {lang === "ar" ? bd.nameAr : bd.nameEn}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-            <div className="grid grid-cols-3 gap-2">
+            {/* Sprite Selector */}
+            <AnimatePresence>
+              {showSpriteSelector && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-2 p-2 rounded-lg border"
+                  style={{ backgroundColor: "hsl(var(--card))", borderColor: "hsl(var(--border))" }}
+                >
+                  {/* Category filter */}
+                  <div className="flex gap-1 mb-2 flex-wrap">
+                    {[
+                      { id: "all", labelAr: "الكل", labelEn: "All" },
+                      { id: "animals", labelAr: "حيوانات", labelEn: "Animals" },
+                      { id: "people", labelAr: "أشخاص", labelEn: "People" },
+                      { id: "fantasy", labelAr: "خيال", labelEn: "Fantasy" },
+                      { id: "objects", labelAr: "أشياء", labelEn: "Objects" },
+                    ].map(cat => (
+                      <button
+                        key={cat.id}
+                        onClick={() => setSpriteFilterCat(cat.id)}
+                        className="px-2 py-0.5 rounded-full text-[10px] font-bold transition-all"
+                        style={{
+                          backgroundColor: spriteFilterCat === cat.id ? "hsl(var(--primary))" : "hsl(var(--muted))",
+                          color: spriteFilterCat === cat.id ? "hsl(var(--primary-foreground))" : "hsl(var(--muted-foreground))",
+                        }}
+                      >
+                        {lang === "ar" ? cat.labelAr : cat.labelEn}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-6 gap-1 max-h-32 overflow-y-auto">
+                    {filteredSpriteLib.map(s => (
+                      <button
+                        key={s.emoji}
+                        onClick={() => { addSprite(s.emoji, s.nameAr, s.nameEn); setShowSpriteSelector(false); }}
+                        className="text-2xl p-1.5 rounded-lg hover:scale-110 transition-transform flex flex-col items-center"
+                        style={{ backgroundColor: "hsl(var(--muted))" }}
+                        title={lang === "ar" ? s.nameAr : s.nameEn}
+                      >
+                        {s.emoji}
+                        <span className="text-[8px] text-muted-foreground font-bold mt-0.5">{lang === "ar" ? s.nameAr : s.nameEn}</span>
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Sprite Grid */}
+            <div className="grid grid-cols-4 gap-1.5">
               {sprites.map((sprite, idx) => (
                 <motion.div
                   key={sprite.id}
                   layout
                   onClick={() => setActiveSprite(idx)}
-                  className={`group relative p-3 rounded-xl border-2 cursor-pointer transition-all text-center ${
-                    idx === activeSprite
-                      ? "border-primary bg-primary/10 shadow-lg"
-                      : "border-border bg-surface-mid hover:border-primary/30"
-                  }`}
+                  className="group relative p-2 rounded-lg border-2 cursor-pointer transition-all text-center"
+                  style={{
+                    borderColor: idx === activeSprite ? "hsl(var(--primary))" : "hsl(var(--border))",
+                    backgroundColor: idx === activeSprite ? "hsl(var(--primary) / 0.1)" : "hsl(var(--card))",
+                  }}
                 >
-                  <span className="text-3xl block mb-1">{sprite.emoji}</span>
-                  <span className="text-[10px] font-bold text-foreground block truncate">{sprite.name}</span>
-                  <span className="text-[9px] text-muted-foreground">{sprite.scripts[0]?.length || 0} مكعب</span>
+                  <span className="text-2xl block mb-0.5" style={{ filter: "drop-shadow(2px 2px 3px rgba(0,0,0,0.2))" }}>{sprite.emoji}</span>
+                  <span className="text-[9px] font-bold text-foreground block truncate">{lang === "ar" ? sprite.name : sprite.nameEn}</span>
                   {sprites.length > 1 && (
                     <button
                       onClick={e => { e.stopPropagation(); deleteSprite(idx); }}
-                      className="absolute -top-1 -left-1 opacity-0 group-hover:opacity-100 bg-destructive text-white rounded-full p-0.5 transition-opacity"
+                      className="absolute -top-1 rounded-full p-0.5 transition-opacity opacity-0 group-hover:opacity-100"
+                      style={{ backgroundColor: "hsl(var(--destructive))", color: "white", insetInlineEnd: -4 }}
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <X className="h-2.5 w-2.5" />
                     </button>
                   )}
                 </motion.div>
@@ -745,6 +1096,11 @@ const GameLearning = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* ── Space Shooter Game Section ── */}
+      <div className="border-t" style={{ borderColor: "hsl(var(--border))" }}>
+        <SpaceShooterGame lang={lang} t={t} />
       </div>
 
       <Footer />
