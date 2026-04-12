@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, memo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import {
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ScrollReveal from "@/components/ScrollReveal";
 import Footer from "@/components/Footer";
+import LazyImage from "@/components/LazyImage";
 import ladderImg from "@/assets/ladder-success.png";
 import studentsImg from "@/assets/students-laptops.png";
 import whySchoolImg from "@/assets/why-school.png";
@@ -25,18 +26,18 @@ const HeroIntro = () => {
   const [muted, setMuted] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const togglePlay = () => {
+  const togglePlay = useCallback(() => {
     if (!videoRef.current) return;
     if (playing) videoRef.current.pause();
     else videoRef.current.play();
     setPlaying(!playing);
-  };
+  }, [playing]);
 
-  const toggleMute = () => {
+  const toggleMute = useCallback(() => {
     if (!videoRef.current) return;
     videoRef.current.muted = !muted;
     setMuted(!muted);
-  };
+  }, [muted]);
 
   return (
     <section className="relative py-24 sm:py-32 pt-28 sm:pt-36 overflow-hidden grid-bg">
@@ -81,7 +82,7 @@ const HeroIntro = () => {
                 className="w-full h-full object-cover"
                 src="https://www.w3schools.com/html/mov_bbb.mp4"
                 playsInline
-                preload="metadata"
+                preload="none"
                 onEnded={() => setPlaying(false)}
               />
               {!playing && (
@@ -149,7 +150,7 @@ const SchoolApproach = () => {
             className="flex-1 flex justify-center"
             style={{ perspective: "1000px" }}
           >
-            <img src={ladderImg} alt="شخص يتسلق سلم النجاح" className="max-h-[350px] sm:max-h-[450px] object-contain drop-shadow-2xl" loading="lazy" width={512} height={640} />
+            <LazyImage src={ladderImg} alt="شخص يتسلق سلم النجاح" className="max-h-[350px] sm:max-h-[450px] object-contain drop-shadow-2xl" width={512} height={640} />
           </motion.div>
         </div>
       </div>
@@ -269,7 +270,7 @@ const FamilySection = () => {
             viewport={{ once: true }}
             className="flex-1 flex justify-center"
           >
-            <img src={studentsImg} alt="طلاب يتعلمون معاً" className="max-h-[320px] sm:max-h-[420px] object-contain drop-shadow-2xl" loading="lazy" width={640} height={512} />
+            <LazyImage src={studentsImg} alt="طلاب يتعلمون معاً" className="max-h-[320px] sm:max-h-[420px] object-contain drop-shadow-2xl" width={640} height={512} />
           </motion.div>
         </motion.div>
       </div>
@@ -284,7 +285,7 @@ const topEngineers = [
   { name: "م. خالد يوسف", title: "مهندس اتصالات — Meta", img: eng3 },
 ];
 
-const TopEngineersSection = () => (
+const TopEngineersSection = memo(() => (
   <section className="py-20 sm:py-28 bg-surface-low grid-bg">
     <div className="container mx-auto px-4 sm:px-6">
       <ScrollReveal>
@@ -302,7 +303,7 @@ const TopEngineersSection = () => (
               style={{ perspective: "800px" }}
             >
               <div className="h-32 w-32 sm:h-44 sm:w-44 rounded-full overflow-hidden border-4 border-primary/30 mb-5 shadow-lg shadow-primary/10">
-                <img src={eng.img} alt={eng.name} className="w-full h-full object-cover" loading="lazy" width={512} height={512} />
+                <LazyImage src={eng.img} alt={eng.name} className="w-full h-full object-cover" width={512} height={512} />
               </div>
               <h3 className="font-display font-bold text-lg sm:text-xl text-foreground">{eng.name}</h3>
               <p className="text-sm sm:text-base text-muted-foreground">{eng.title}</p>
@@ -320,7 +321,8 @@ const TopEngineersSection = () => (
       </div>
     </div>
   </section>
-);
+));
+TopEngineersSection.displayName = "TopEngineersSection";
 
 /* ───────── Section 7: Why the School ───────── */
 const whyRightItems = [
@@ -339,7 +341,7 @@ const whyLeftItems = [
   { icon: <Star className="h-7 w-7" />, title: "تعلم من الأفضل", desc: "تعلم من أفضل مهندسي البرمجيات في كبرى الشركات العالمية." },
 ];
 
-const WhyItemCard = ({ item, index, fromRight }: { item: { icon: React.ReactNode; title: string; desc: string }; index: number; fromRight: boolean }) => (
+const WhyItemCard = memo(({ item, index, fromRight }: { item: { icon: React.ReactNode; title: string; desc: string }; index: number; fromRight: boolean }) => (
   <motion.div
     initial={{ opacity: 0, x: fromRight ? 60 : -60 }}
     whileInView={{ opacity: 1, x: 0 }}
@@ -355,9 +357,10 @@ const WhyItemCard = ({ item, index, fromRight }: { item: { icon: React.ReactNode
       <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-sm">{item.desc}</p>
     </div>
   </motion.div>
-);
+));
+WhyItemCard.displayName = "WhyItemCard";
 
-const WhySchoolSection = () => (
+const WhySchoolSection = memo(() => (
   <section className="py-20 sm:py-28 overflow-hidden">
     <div className="container mx-auto px-4 sm:px-6">
       <ScrollReveal>
@@ -381,7 +384,7 @@ const WhySchoolSection = () => (
           viewport={{ once: true }}
           className="hidden lg:flex items-start justify-center pt-8 shrink-0"
         >
-          <img src={whySchoolImg} alt="لماذا المدرسة" className="w-[280px] object-contain drop-shadow-2xl" loading="lazy" width={640} height={800} />
+          <LazyImage src={whySchoolImg} alt="لماذا المدرسة" className="w-[280px] object-contain drop-shadow-2xl" width={640} height={800} />
         </motion.div>
 
         <div className="space-y-8 sm:space-y-10">
@@ -392,7 +395,8 @@ const WhySchoolSection = () => (
       </div>
     </div>
   </section>
-);
+));
+WhySchoolSection.displayName = "WhySchoolSection";
 
 /* ───────── Section 8: School Goal ───────── */
 const goalItems = [
@@ -402,7 +406,7 @@ const goalItems = [
   { icon: <Baby className="h-6 w-6" />, title: "المبرمج الصغير", desc: "دورة تعليمية متكاملة وممتعة مصممة خصيصاً للأطفال بشرح كامل بالعربية." },
 ];
 
-const SchoolGoalSection = () => (
+const SchoolGoalSection = memo(() => (
   <section className="py-20 sm:py-28 bg-surface-low grid-bg overflow-hidden">
     <div className="container mx-auto px-4 sm:px-6">
       <div className="flex flex-col md:flex-row items-center gap-10 md:gap-16">
@@ -422,7 +426,7 @@ const SchoolGoalSection = () => (
             viewport={{ once: true }}
             className="flex justify-center md:justify-start mt-6"
           >
-            <img src={goalPersonImg} alt="شخص يفكر" className="max-h-[250px] sm:max-h-[300px] object-contain drop-shadow-2xl" loading="lazy" width={640} height={640} />
+            <LazyImage src={goalPersonImg} alt="شخص يفكر" className="max-h-[250px] sm:max-h-[300px] object-contain drop-shadow-2xl" width={640} height={640} />
           </motion.div>
         </div>
 
@@ -449,7 +453,8 @@ const SchoolGoalSection = () => (
       </div>
     </div>
   </section>
-);
+));
+SchoolGoalSection.displayName = "SchoolGoalSection";
 
 /* ───────── Section 9: Stats ───────── */
 const stats = [
@@ -458,7 +463,7 @@ const stats = [
   { icon: <FolderKanban className="h-8 w-8 sm:h-10 sm:w-10" />, value: "850+", label: "مشروع" },
 ];
 
-const StatsSection = () => (
+const StatsSection = memo(() => (
   <section className="py-20 sm:py-28">
     <div className="container mx-auto px-4 sm:px-6">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 max-w-4xl mx-auto">
@@ -477,7 +482,8 @@ const StatsSection = () => (
       </div>
     </div>
   </section>
-);
+));
+StatsSection.displayName = "StatsSection";
 
 /* ───────── Section 10: Contact & Subscribe ───────── */
 const ContactSubscribe = () => {
