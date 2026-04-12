@@ -1,10 +1,11 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, Volume2, VolumeX, Clock, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ScrollReveal from "@/components/ScrollReveal";
 import Footer from "@/components/Footer";
+import LazyImage from "@/components/LazyImage";
 
 import courseCyber from "@/assets/course-cyber.png";
 import coursePython from "@/assets/course-python.png";
@@ -22,22 +23,22 @@ const placeholderCourses = [
   { id: "kids-programming", title: "المبرمج الصغير", hours: 18, img: courseKids },
 ];
 
-/* ── Hero ── */
 const CoursesHero = () => {
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const togglePlay = () => {
+  const togglePlay = useCallback(() => {
     if (!videoRef.current) return;
     playing ? videoRef.current.pause() : videoRef.current.play();
     setPlaying(!playing);
-  };
-  const toggleMute = () => {
+  }, [playing]);
+
+  const toggleMute = useCallback(() => {
     if (!videoRef.current) return;
     videoRef.current.muted = !muted;
     setMuted(!muted);
-  };
+  }, [muted]);
 
   return (
     <section className="relative py-24 sm:py-32 pt-28 sm:pt-36 overflow-hidden grid-bg">
@@ -78,7 +79,7 @@ const CoursesHero = () => {
                 className="w-full h-full object-cover"
                 src="https://www.w3schools.com/html/mov_bbb.mp4"
                 playsInline
-                preload="metadata"
+                preload="none"
                 onEnded={() => setPlaying(false)}
               />
               {!playing && (
@@ -106,12 +107,13 @@ const CoursesHero = () => {
   );
 };
 
-/* ── Course Cards with 3D flip animation ── */
 const CourseCardsSection = () => {
   const [hasAnimated, setHasAnimated] = useState(false);
   const sectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !hasAnimated) {
@@ -120,7 +122,7 @@ const CourseCardsSection = () => {
       },
       { threshold: 0.15 }
     );
-    if (sectionRef.current) observer.observe(sectionRef.current);
+    observer.observe(el);
     return () => observer.disconnect();
   }, [hasAnimated]);
 
@@ -157,11 +159,10 @@ const CourseCardsSection = () => {
                   style={{ transformStyle: "preserve-3d" }}
                 >
                   <div className="relative h-44 sm:h-52 bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center overflow-hidden">
-                    <img
+                    <LazyImage
                       src={course.img}
                       alt={course.title}
                       className="h-32 w-32 sm:h-40 sm:w-40 object-contain group-hover:scale-110 transition-transform duration-500"
-                      loading="lazy"
                       width={640}
                       height={512}
                     />
@@ -187,7 +188,6 @@ const CourseCardsSection = () => {
   );
 };
 
-/* ── Page ── */
 const Courses = () => (
   <div className="min-h-screen bg-background pt-20">
     <CoursesHero />
