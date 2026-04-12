@@ -86,7 +86,12 @@ const EngineerDetail = () => {
                       </a>
                     )}
                   </div>
-                  <p className="text-muted-foreground leading-relaxed">{engineer.bio}</p>
+                  <p className="text-muted-foreground leading-relaxed mb-6">{engineer.bio}</p>
+                  <Link to={`/engineer/${id}/chat`}>
+                    <Button className="bg-gradient-to-l from-primary to-secondary text-primary-foreground rounded-xl h-12 px-8 text-base font-bold">
+                      مراسلة الآن
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </div>

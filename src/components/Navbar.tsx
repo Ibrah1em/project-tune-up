@@ -16,7 +16,7 @@ const Navbar = () => {
     { to: "/projects", label: "المشاريع" },
     { to: "/consultations", label: "الاستشارات" },
     { to: "/sponsors", label: "رعاة المدرسة" },
-    { to: "/game-learning", label: "تعليم بالألعاب" },
+    
   ];
 
   const isActive = (path: string) => location.pathname === path;

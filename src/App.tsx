@@ -23,6 +23,7 @@ const Profile = lazy(() => import("./pages/Profile"));
 const LearnFromBest = lazy(() => import("./pages/LearnFromBest"));
 const Projects = lazy(() => import("./pages/Projects"));
 const GameLearning = lazy(() => import("./pages/GameLearning"));
+const EngineerChat = lazy(() => import("./pages/EngineerChat"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -48,6 +49,7 @@ const App = () => (
               <Route path="/course/:id/learn/:lessonId" element={<CourseLearning />} />
               <Route path="/consultations" element={<Consultations />} />
               <Route path="/engineer/:id" element={<EngineerDetail />} />
+              <Route path="/engineer/:id/chat" element={<EngineerChat />} />
               <Route path="/sponsors" element={<SchoolSponsors />} />
               <Route path="/projects" element={<Projects />} />
               <Route path="/game-learning" element={<GameLearning />} />
