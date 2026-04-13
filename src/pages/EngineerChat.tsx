@@ -188,19 +188,32 @@ const EngineerChat = () => {
   const togglePlayVoice = (msgId: string, audioUrl: string) => {
     if (playingId === msgId) {
       audioRefs.current[msgId]?.pause();
+      clearInterval(progressIntervals.current[msgId]);
       setPlayingId(null);
       return;
     }
     // Stop any currently playing
     if (playingId && audioRefs.current[playingId]) {
       audioRefs.current[playingId].pause();
+      clearInterval(progressIntervals.current[playingId]);
     }
     if (!audioRefs.current[msgId]) {
-      audioRefs.current[msgId] = new Audio(audioUrl);
-      audioRefs.current[msgId].onended = () => setPlayingId(null);
+      const audio = new Audio(audioUrl);
+      audio.onended = () => {
+        setPlayingId(null);
+        setVoiceProgress((p) => ({ ...p, [msgId]: 0 }));
+        clearInterval(progressIntervals.current[msgId]);
+      };
+      audioRefs.current[msgId] = audio;
     }
-    audioRefs.current[msgId].play();
+    const audio = audioRefs.current[msgId];
+    audio.play();
     setPlayingId(msgId);
+    progressIntervals.current[msgId] = setInterval(() => {
+      if (audio.duration) {
+        setVoiceProgress((p) => ({ ...p, [msgId]: (audio.currentTime / audio.duration) * 100 }));
+      }
+    }, 50);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -323,7 +336,7 @@ const EngineerChat = () => {
                 )}
 
                 {msg.type === "voice" && (
-                  <div className="flex items-center gap-3 min-w-[180px]">
+                  <div className="flex items-center gap-3 min-w-[200px]">
                     <button
                       onClick={() => togglePlayVoice(msg.id, msg.content)}
                       className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center shrink-0 hover:bg-white/30 transition-colors"
@@ -334,12 +347,27 @@ const EngineerChat = () => {
                         <Play className="h-4 w-4" />
                       )}
                     </button>
-                    <div className="flex-1 h-1 rounded-full bg-white/30">
-                      <div className="h-full w-1/3 rounded-full bg-white/70" />
+                    <div className="flex-1 flex flex-col gap-1">
+                      <div className="h-1.5 rounded-full bg-white/20 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-white/80 transition-all duration-100 ease-linear"
+                          style={{ width: `${voiceProgress[msg.id] || 0}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] opacity-60">
+                          {playingId === msg.id && audioRefs.current[msg.id]
+                            ? formatTime(Math.floor(audioRefs.current[msg.id].currentTime))
+                            : "0:00"}
+                        </span>
+                        <span className="text-[10px] opacity-60">
+                          {msg.duration ? (msg.duration >= 60
+                            ? `${Math.floor(msg.duration / 60)} دقيقة ${msg.duration % 60 > 0 ? `و ${msg.duration % 60} ثانية` : ""}`
+                            : `${msg.duration} ثانية`)
+                          : "0:00"}
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-xs opacity-75">
-                      {formatTime(msg.duration || 0)}
-                    </span>
                   </div>
                 )}
 
