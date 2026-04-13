@@ -58,6 +58,10 @@ const EngineerChat = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const recordingInterval = useRef<ReturnType<typeof setInterval>>();
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const audioRefs = useRef<Record<string, HTMLAudioElement>>({});
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -132,30 +136,69 @@ const EngineerChat = () => {
     }
   };
 
-  const toggleRecording = () => {
+  const toggleRecording = async () => {
     if (isRecording) {
       clearInterval(recordingInterval.current);
-      const duration = recordingTime;
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          sender: "user",
-          type: "voice",
-          content: "",
-          duration,
-          timestamp: new Date(),
-        },
-      ]);
+      mediaRecorderRef.current?.stop();
       setIsRecording(false);
-      setRecordingTime(0);
     } else {
-      setIsRecording(true);
-      setRecordingTime(0);
-      recordingInterval.current = setInterval(() => {
-        setRecordingTime((t) => t + 1);
-      }, 1000);
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+        audioChunksRef.current = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) audioChunksRef.current.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const duration = recordingTime;
+          stream.getTracks().forEach((t) => t.stop());
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: crypto.randomUUID(),
+              sender: "user",
+              type: "voice",
+              content: audioUrl,
+              duration,
+              timestamp: new Date(),
+            },
+          ]);
+          setRecordingTime(0);
+        };
+
+        mediaRecorder.start();
+        setIsRecording(true);
+        setRecordingTime(0);
+        recordingInterval.current = setInterval(() => {
+          setRecordingTime((t) => t + 1);
+        }, 1000);
+      } catch {
+        console.error("Microphone access denied");
+      }
     }
+  };
+
+  const togglePlayVoice = (msgId: string, audioUrl: string) => {
+    if (playingId === msgId) {
+      audioRefs.current[msgId]?.pause();
+      setPlayingId(null);
+      return;
+    }
+    // Stop any currently playing
+    if (playingId && audioRefs.current[playingId]) {
+      audioRefs.current[playingId].pause();
+    }
+    if (!audioRefs.current[msgId]) {
+      audioRefs.current[msgId] = new Audio(audioUrl);
+      audioRefs.current[msgId].onended = () => setPlayingId(null);
+    }
+    audioRefs.current[msgId].play();
+    setPlayingId(msgId);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -279,8 +322,15 @@ const EngineerChat = () => {
 
                 {msg.type === "voice" && (
                   <div className="flex items-center gap-3 min-w-[180px]">
-                    <button className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-                      <Play className="h-4 w-4" />
+                    <button
+                      onClick={() => togglePlayVoice(msg.id, msg.content)}
+                      className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center shrink-0 hover:bg-white/30 transition-colors"
+                    >
+                      {playingId === msg.id ? (
+                        <Pause className="h-4 w-4" />
+                      ) : (
+                        <Play className="h-4 w-4" />
+                      )}
                     </button>
                     <div className="flex-1 h-1 rounded-full bg-white/30">
                       <div className="h-full w-1/3 rounded-full bg-white/70" />
