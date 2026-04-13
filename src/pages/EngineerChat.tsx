@@ -61,7 +61,9 @@ const EngineerChat = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const [playingId, setPlayingId] = useState<string | null>(null);
+  const [voiceProgress, setVoiceProgress] = useState<Record<string, number>>({});
   const audioRefs = useRef<Record<string, HTMLAudioElement>>({});
+  const progressIntervals = useRef<Record<string, ReturnType<typeof setInterval>>>({});
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
