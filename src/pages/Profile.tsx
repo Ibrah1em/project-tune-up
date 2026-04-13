@@ -10,7 +10,8 @@ const Profile = () => {
   const { user, isLoggedIn, logout } = useAuth();
   const [message, setMessage] = useState("");
 
-  if (!isLoggedIn) return <Navigate to="/login" />;
+  // TODO: re-enable auth guard after backend is ready
+  // if (!isLoggedIn) return <Navigate to="/login" />;
 
   const handleSendMessage = () => {
     if (!message.trim()) return;
