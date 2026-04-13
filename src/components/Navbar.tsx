@@ -16,7 +16,7 @@ const Navbar = () => {
     { to: "/projects", label: "المشاريع" },
     { to: "/consultations", label: "الاستشارات" },
     { to: "/sponsors", label: "رعاة المدرسة" },
-    ...(isLoggedIn ? [{ to: "/profile", label: "صفحتي" }] : []),
+    { to: "/profile", label: "صفحتي" },
   ];
 
   const isActive = (path: string) => location.pathname === path;
