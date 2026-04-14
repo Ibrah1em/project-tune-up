@@ -14,6 +14,7 @@ import {
   X,
   Smile,
   Video,
+  Download,
 } from "lucide-react";
 
 const engineersData: Record<string, { name: string; title: string }> = {
@@ -63,6 +64,7 @@ const EngineerChat = () => {
   const audioChunksRef = useRef<Blob[]>([]);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [voiceProgress, setVoiceProgress] = useState<Record<string, number>>({});
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const audioRefs = useRef<Record<string, HTMLAudioElement>>({});
   const progressIntervals = useRef<Record<string, ReturnType<typeof setInterval>>>({});
 
@@ -261,8 +263,43 @@ const EngineerChat = () => {
     });
   };
 
+  const handleDownloadImage = (url: string) => {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "image";
+    a.click();
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {/* Image Lightbox */}
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <div className="absolute top-4 right-4 flex gap-3">
+            <button
+              onClick={(e) => { e.stopPropagation(); handleDownloadImage(lightboxUrl); }}
+              className="h-10 w-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+            >
+              <Download className="h-5 w-5 text-white" />
+            </button>
+            <button
+              onClick={() => setLightboxUrl(null)}
+              className="h-10 w-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+            >
+              <X className="h-5 w-5 text-white" />
+            </button>
+          </div>
+          <img
+            src={lightboxUrl}
+            alt="صورة"
+            className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
       {/* Header */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-xl border-b border-border">
         <div className="container mx-auto flex items-center gap-4 px-4 py-3">
@@ -314,7 +351,10 @@ const EngineerChat = () => {
                 )}
 
                 {msg.type === "image" && (
-                  <div>
+                  <div
+                    className="cursor-pointer"
+                    onClick={() => setLightboxUrl(msg.content)}
+                  >
                     <img
                       src={msg.content}
                       alt="صورة"
@@ -387,7 +427,7 @@ const EngineerChat = () => {
                     {formatTimestamp(msg.timestamp)}
                   </p>
                   {msg.sender === "user" && (
-                    <span className={`text-[10px] ${msg.status === "read" ? "text-blue-500" : "opacity-50"}`}>
+                    <span className={`text-[11px] font-bold ${msg.status === "read" ? "text-blue-400" : "text-white/70"}`}>
                       ✓✓
                     </span>
                   )}
