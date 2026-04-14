@@ -112,6 +112,70 @@
   }
 }
 
+/* Light mode enhancements */
+.light .bg-card,
+.light .bg-surface-low {
+  box-shadow: 0 2px 16px 0 hsla(220, 20%, 60%, 0.10), 0 1px 4px 0 hsla(220, 20%, 60%, 0.06);
+}
+
+.light .grid-bg {
+  background-image:
+    linear-gradient(hsla(190, 100%, 38%, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, hsla(190, 100%, 38%, 0.06) 1px, transparent 1px);
+}
+
+.light .border-border {
+  border-color: hsla(220, 14%, 82%, 0.8);
+}
+
+/* Light mode floating orbs */
+@keyframes light-orb-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(30px, -20px) scale(1.05); }
+  50% { transform: translate(-10px, -40px) scale(0.95); }
+  75% { transform: translate(-30px, -15px) scale(1.02); }
+}
+
+@keyframes light-orb-float-reverse {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(-25px, 15px) scale(0.97); }
+  50% { transform: translate(15px, 35px) scale(1.04); }
+  75% { transform: translate(20px, 10px) scale(0.98); }
+}
+
+.light-orb {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.light .light-orb {
+  opacity: 1;
+}
+
+.light-orb-1 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, hsla(190, 100%, 50%, 0.12) 0%, transparent 70%);
+  animation: light-orb-float 8s ease-in-out infinite;
+}
+
+.light-orb-2 {
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, hsla(265, 80%, 55%, 0.10) 0%, transparent 70%);
+  animation: light-orb-float-reverse 10s ease-in-out infinite;
+}
+
+.light-orb-3 {
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, hsla(190, 100%, 45%, 0.08) 0%, transparent 70%);
+  animation: light-orb-float 12s ease-in-out infinite;
+}
+
 @layer base {
   * {
     @apply border-border;

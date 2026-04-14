@@ -45,6 +45,10 @@ const HeroIntro = () => {
         <div className="absolute top-20 right-[10%] w-20 h-20 border border-primary/20 rounded-xl animate-float" style={{ animationDelay: "0s" }} />
         <div className="absolute top-40 left-[15%] w-14 h-14 border border-secondary/20 rounded-lg animate-float" style={{ animationDelay: "2s" }} />
         <div className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px]" />
+        {/* Light mode 3D orbs */}
+        <div className="light-orb light-orb-1" style={{ top: "5%", right: "10%" }} />
+        <div className="light-orb light-orb-2" style={{ bottom: "10%", left: "5%" }} />
+        <div className="light-orb light-orb-3" style={{ top: "50%", left: "30%" }} />
       </div>
       <div className="container mx-auto px-4 sm:px-6 relative z-10">
         <div className="flex flex-col md:flex-row items-center gap-10 md:gap-16">
@@ -286,7 +290,11 @@ const topEngineers = [
 ];
 
 const TopEngineersSection = memo(() => (
-  <section className="py-20 sm:py-28 bg-surface-low grid-bg">
+  <section className="relative py-20 sm:py-28 bg-surface-low grid-bg">
+    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      <div className="light-orb light-orb-2" style={{ top: "10%", right: "5%" }} />
+      <div className="light-orb light-orb-1" style={{ bottom: "5%", left: "10%" }} />
+    </div>
     <div className="container mx-auto px-4 sm:px-6">
       <ScrollReveal>
         <h2 className="font-display font-bold text-3xl sm:text-4xl md:text-5xl text-foreground text-center mb-12 sm:mb-16">
@@ -361,7 +369,11 @@ const WhyItemCard = memo(({ item, index, fromRight }: { item: { icon: React.Reac
 WhyItemCard.displayName = "WhyItemCard";
 
 const WhySchoolSection = memo(() => (
-  <section className="py-20 sm:py-28 overflow-hidden">
+  <section className="relative py-20 sm:py-28 overflow-hidden">
+    <div className="absolute inset-0 pointer-events-none">
+      <div className="light-orb light-orb-1" style={{ top: "20%", left: "0%" }} />
+      <div className="light-orb light-orb-3" style={{ bottom: "10%", right: "5%" }} />
+    </div>
     <div className="container mx-auto px-4 sm:px-6">
       <ScrollReveal>
         <h2 className="font-display font-bold text-3xl sm:text-4xl md:text-5xl text-foreground text-center mb-14 sm:mb-20">
@@ -407,7 +419,11 @@ const goalItems = [
 ];
 
 const SchoolGoalSection = memo(() => (
-  <section className="py-20 sm:py-28 bg-surface-low grid-bg overflow-hidden">
+  <section className="relative py-20 sm:py-28 bg-surface-low grid-bg overflow-hidden">
+    <div className="absolute inset-0 pointer-events-none">
+      <div className="light-orb light-orb-2" style={{ top: "15%", left: "10%" }} />
+      <div className="light-orb light-orb-3" style={{ bottom: "20%", right: "0%" }} />
+    </div>
     <div className="container mx-auto px-4 sm:px-6">
       <div className="flex flex-col md:flex-row items-center gap-10 md:gap-16">
         <div className="flex-1 text-right pr-2 sm:pr-4 md:pr-8">
