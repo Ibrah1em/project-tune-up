@@ -314,7 +314,10 @@ const EngineerChat = () => {
                 )}
 
                 {msg.type === "image" && (
-                  <div>
+                  <div
+                    className="cursor-pointer"
+                    onClick={() => setLightboxUrl(msg.content)}
+                  >
                     <img
                       src={msg.content}
                       alt="صورة"
@@ -387,7 +390,7 @@ const EngineerChat = () => {
                     {formatTimestamp(msg.timestamp)}
                   </p>
                   {msg.sender === "user" && (
-                    <span className={`text-[10px] ${msg.status === "read" ? "text-blue-500" : "opacity-50"}`}>
+                    <span className={`text-[11px] font-bold ${msg.status === "read" ? "text-blue-400" : "text-white/70"}`}>
                       ✓✓
                     </span>
                   )}
