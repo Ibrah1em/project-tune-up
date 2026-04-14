@@ -100,6 +100,7 @@ const EngineerChat = () => {
         content: pf.url,
         fileName: pf.file.name,
         timestamp: new Date(),
+        status: "delivered",
       });
     });
 
@@ -110,6 +111,7 @@ const EngineerChat = () => {
         type: "text",
         content: trimmed,
         timestamp: new Date(),
+        status: "delivered",
       });
     }
 
@@ -117,7 +119,16 @@ const EngineerChat = () => {
     setText("");
     setPreviewFiles([]);
 
-    // Simulate engineer reply
+    // Simulate engineer reading messages then replying
+    setTimeout(() => {
+      // Mark all user messages as read
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.sender === "user" && m.status !== "read" ? { ...m, status: "read" } : m
+        )
+      );
+    }, 800);
+
     setTimeout(() => {
       setMessages((prev) => [
         ...prev,
