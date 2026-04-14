@@ -22,62 +22,70 @@ function interpolateHSL(h: number, s: number, l: number, brightness: number): st
   return `${h} ${newS.toFixed(1)}% ${newL.toFixed(1)}%`;
 }
 
-// Light mode base values [h, s, l]
-const lightTokens: Record<string, [number, number, number]> = {
-  "--background": [30, 20, 97],
-  "--foreground": [225, 25, 12],
-  "--card": [0, 0, 100],
-  "--card-foreground": [225, 25, 12],
-  "--popover": [0, 0, 100],
-  "--popover-foreground": [225, 25, 12],
-  "--primary": [190, 100, 38],
-  "--primary-foreground": [0, 0, 100],
-  "--primary-glow": [190, 100, 45],
-  "--secondary": [265, 80, 55],
-  "--secondary-foreground": [0, 0, 100],
-  "--muted": [220, 14, 92],
-  "--muted-foreground": [220, 10, 40],
-  "--accent": [265, 60, 50],
-  "--accent-foreground": [0, 0, 100],
-  "--border": [220, 14, 88],
-  "--input": [220, 14, 92],
-  "--ring": [190, 100, 38],
-  "--surface": [30, 20, 97],
-  "--surface-low": [220, 14, 95],
-  "--surface-mid": [220, 14, 92],
-  "--surface-high": [220, 14, 88],
-  "--sidebar-background": [0, 0, 100],
-  "--sidebar-foreground": [225, 25, 12],
-  "--sidebar-primary": [190, 100, 38],
-  "--sidebar-border": [220, 14, 88],
+// Light mode base values [h, s, l] with type: "bg" | "fg" | "accent"
+const lightTokens: Record<string, { hsl: [number, number, number]; kind: "bg" | "fg" | "accent" }> = {
+  "--background": { hsl: [30, 20, 97], kind: "bg" },
+  "--foreground": { hsl: [225, 25, 12], kind: "fg" },
+  "--card": { hsl: [0, 0, 100], kind: "bg" },
+  "--card-foreground": { hsl: [225, 25, 12], kind: "fg" },
+  "--popover": { hsl: [0, 0, 100], kind: "bg" },
+  "--popover-foreground": { hsl: [225, 25, 12], kind: "fg" },
+  "--primary": { hsl: [190, 100, 38], kind: "accent" },
+  "--primary-foreground": { hsl: [0, 0, 100], kind: "fg" },
+  "--primary-glow": { hsl: [190, 100, 45], kind: "accent" },
+  "--secondary": { hsl: [265, 80, 55], kind: "accent" },
+  "--secondary-foreground": { hsl: [0, 0, 100], kind: "fg" },
+  "--muted": { hsl: [220, 14, 92], kind: "bg" },
+  "--muted-foreground": { hsl: [220, 10, 40], kind: "fg" },
+  "--accent": { hsl: [265, 60, 50], kind: "accent" },
+  "--accent-foreground": { hsl: [0, 0, 100], kind: "fg" },
+  "--border": { hsl: [220, 14, 88], kind: "bg" },
+  "--input": { hsl: [220, 14, 92], kind: "bg" },
+  "--ring": { hsl: [190, 100, 38], kind: "accent" },
+  "--surface": { hsl: [30, 20, 97], kind: "bg" },
+  "--surface-low": { hsl: [220, 14, 95], kind: "bg" },
+  "--surface-mid": { hsl: [220, 14, 92], kind: "bg" },
+  "--surface-high": { hsl: [220, 14, 88], kind: "bg" },
+  "--sidebar-background": { hsl: [0, 0, 100], kind: "bg" },
+  "--sidebar-foreground": { hsl: [225, 25, 12], kind: "fg" },
+  "--sidebar-primary": { hsl: [190, 100, 38], kind: "accent" },
+  "--sidebar-border": { hsl: [220, 14, 88], kind: "bg" },
 };
 
 function applyBrightnessTokens(brightness: number) {
   const root = document.documentElement;
-  if (brightness >= 100) {
-    // Reset to original values
-    Object.entries(lightTokens).forEach(([prop, [h, s, l]]) => {
-      root.style.setProperty(prop, `${h} ${s}% ${l}%`);
-    });
-  } else {
-    Object.entries(lightTokens).forEach(([prop, [h, s, l]]) => {
-      // Background tokens: darken by reducing lightness
-      // Foreground tokens: lighten slightly for contrast on darker bg
-      const isForeground = prop.includes("foreground");
-      const factor = brightness / 100;
+  const factor = brightness / 100;
 
-      if (isForeground) {
-        // Foreground should remain readable — lighten as bg gets darker
-        const newL = Math.min(95, l + (1 - factor) * 60);
+  Object.entries(lightTokens).forEach(([prop, { hsl: [h, s, l], kind }]) => {
+    if (brightness >= 100) {
+      root.style.setProperty(prop, `${h} ${s}% ${l}%`);
+      return;
+    }
+
+    if (kind === "bg") {
+      // Backgrounds get darker
+      const newL = Math.max(5, l * factor);
+      const newS = Math.max(0, s * (0.6 + 0.4 * factor));
+      root.style.setProperty(prop, `${h} ${newS.toFixed(1)}% ${newL.toFixed(1)}%`);
+    } else if (kind === "fg") {
+      // Text: ensure strong contrast against darkened backgrounds
+      // When bg darkens, text must get lighter
+      const bgBrightness = 97 * factor; // approximate background lightness
+      if (bgBrightness < 50) {
+        // Dark bg → light text
+        const newL = Math.min(95, 90 + (1 - factor) * 5);
         root.style.setProperty(prop, `${h} ${s}% ${newL.toFixed(1)}%`);
       } else {
-        // Backgrounds get darker
-        const newL = Math.max(5, l * factor);
-        const newS = Math.max(0, s * (0.6 + 0.4 * factor));
-        root.style.setProperty(prop, `${h} ${newS.toFixed(1)}% ${newL.toFixed(1)}%`);
+        // Still light enough bg → keep dark text but adjust slightly
+        const newL = Math.max(8, l * (0.7 + 0.3 * factor));
+        root.style.setProperty(prop, `${h} ${s}% ${newL.toFixed(1)}%`);
       }
-    });
-  }
+    } else {
+      // Accent colors: keep vibrant, just slightly adjust lightness
+      const newL = Math.max(30, Math.min(65, l * (0.8 + 0.2 * factor)));
+      root.style.setProperty(prop, `${h} ${s}% ${newL.toFixed(1)}%`);
+    }
+  });
 }
 
 function clearBrightnessTokens() {
