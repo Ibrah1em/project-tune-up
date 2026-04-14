@@ -180,6 +180,7 @@ const EngineerChat = () => {
               content: audioUrl,
               duration,
               timestamp: new Date(),
+              status: "delivered",
             },
           ]);
           setRecordingTime(0);
