@@ -68,13 +68,16 @@ function applyBrightnessTokens(brightness: number) {
       const newS = Math.max(0, s * (0.6 + 0.4 * factor));
       root.style.setProperty(prop, `${h} ${newS.toFixed(1)}% ${newL.toFixed(1)}%`);
     } else if (kind === "fg") {
-      // Text: ensure strong contrast against darkened backgrounds
-      // When bg darkens, text must get lighter
-      const bgBrightness = 97 * factor; // approximate background lightness
-      if (bgBrightness < 50) {
-        // Dark bg → light text
-        const newL = Math.min(95, 90 + (1 - factor) * 5);
-        root.style.setProperty(prop, `${h} ${s}% ${newL.toFixed(1)}%`);
+      // Text: always ensure strong contrast
+      const bgBrightness = 97 * factor;
+      if (bgBrightness < 55) {
+        // Dark bg → very light text for max readability
+        const newL = Math.min(96, 92 + (1 - factor) * 8);
+        root.style.setProperty(prop, `${h} ${Math.min(s, 15)}% ${newL.toFixed(1)}%`);
+      } else if (bgBrightness < 75) {
+        // Mid-range → moderately light text
+        const newL = Math.min(90, 70 + (1 - factor) * 25);
+        root.style.setProperty(prop, `${h} ${Math.min(s, 20)}% ${newL.toFixed(1)}%`);
       } else {
         // Still light enough bg → keep dark text but adjust slightly
         const newL = Math.max(8, l * (0.7 + 0.3 * factor));
