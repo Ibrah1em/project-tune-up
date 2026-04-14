@@ -308,9 +308,6 @@ const EngineerChat = () => {
                       alt="صورة"
                       className="rounded-lg max-w-full max-h-64 object-cover"
                     />
-                    {msg.fileName && (
-                      <p className="text-xs mt-1 opacity-75">{msg.fileName}</p>
-                    )}
                   </div>
                 )}
 
@@ -321,9 +318,6 @@ const EngineerChat = () => {
                       controls
                       className="rounded-lg max-w-full max-h-64"
                     />
-                    {msg.fileName && (
-                      <p className="text-xs mt-1 opacity-75">{msg.fileName}</p>
-                    )}
                   </div>
                 )}
 
@@ -372,13 +366,20 @@ const EngineerChat = () => {
                   </div>
                 )}
 
-                <p
-                  className={`text-[10px] mt-1 ${
-                    msg.sender === "user" ? "opacity-70" : "text-muted-foreground"
-                  }`}
-                >
-                  {formatTimestamp(msg.timestamp)}
-                </p>
+                <div className={`flex items-center gap-1 mt-1 ${msg.sender === "user" ? "justify-start" : "justify-end"}`}>
+                  <p
+                    className={`text-[10px] ${
+                      msg.sender === "user" ? "opacity-70" : "text-muted-foreground"
+                    }`}
+                  >
+                    {formatTimestamp(msg.timestamp)}
+                  </p>
+                  {msg.sender === "user" && (
+                    <span className={`text-[10px] ${msg.status === "read" ? "text-blue-500" : "opacity-50"}`}>
+                      ✓✓
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           ))}
