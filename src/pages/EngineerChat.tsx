@@ -33,6 +33,7 @@ interface ChatMessage {
   fileName?: string;
   duration?: number;
   timestamp: Date;
+  status?: "sent" | "delivered" | "read";
 }
 
 const EngineerChat = () => {
