@@ -44,6 +44,9 @@ const CoursesHero = () => {
     <section className="relative py-24 sm:py-32 pt-28 sm:pt-36 overflow-hidden grid-bg">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px]" />
+        <div className="light-orb light-orb-1" style={{ top: "10%", right: "5%" }} />
+        <div className="light-orb light-orb-2" style={{ bottom: "15%", left: "10%" }} />
+        <div className="light-orb light-orb-3" style={{ top: "60%", right: "40%" }} />
       </div>
       <div className="container mx-auto px-4 sm:px-6 relative z-10">
         <div className="flex flex-col md:flex-row items-center gap-10 md:gap-16">
