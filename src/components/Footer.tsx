@@ -19,10 +19,10 @@ const Footer = () => (
           viewport={{ once: true }}
         >
           <Link to="/" className="flex items-center gap-3 mb-4">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-              <span className="text-primary-foreground font-display font-bold text-lg">&lt;/&gt;</span>
+            <div className="h-11 w-11 rounded-xl overflow-hidden bg-gradient-to-br from-primary/20 to-secondary/20 p-1 flex items-center justify-center ring-1 ring-primary/20">
+              <img src="/favicon.png" alt="IKRAM" className="h-full w-full object-contain" />
             </div>
-            <span className="font-display font-bold text-xl text-foreground">Future Leaders</span>
+            <span className="font-display font-extrabold text-2xl tracking-[0.2em] bg-gradient-to-l from-primary via-primary to-secondary bg-clip-text text-transparent">IKRAM</span>
           </Link>
           <p className="text-sm text-muted-foreground max-w-xs">منصة تعليمية عربية احترافية لبناء قادة المستقبل في التقنية</p>
         </motion.div>
@@ -52,7 +52,7 @@ const Footer = () => (
         </div>
       </div>
       <div className="mt-12 pt-8 border-t border-border text-center">
-        <p className="text-sm text-muted-foreground">© 2026 Future Leaders. جميع الحقوق محفوظة.</p>
+        <p className="text-sm text-muted-foreground">© 2026 IKRAM. جميع الحقوق محفوظة.</p>
       </div>
     </div>
   </motion.footer>

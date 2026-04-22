@@ -25,10 +25,10 @@ const Navbar = () => {
       <div className="container mx-auto flex items-center justify-between py-3 px-6">
         {/* Logo - right side in RTL */}
         <Link to="/" className="flex items-center gap-3 group">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
-            <span className="text-primary-foreground font-display font-bold text-lg">&lt;/&gt;</span>
+          <div className="h-10 w-10 rounded-xl overflow-hidden bg-gradient-to-br from-primary/20 to-secondary/20 p-1 flex items-center justify-center transition-transform duration-300 group-hover:scale-110 ring-1 ring-primary/20">
+            <img src="/favicon.png" alt="IKRAM" className="h-full w-full object-contain" />
           </div>
-          <span className="font-display font-bold text-xl text-foreground">Future Leaders</span>
+          <span className="font-display font-extrabold text-2xl tracking-[0.2em] bg-gradient-to-l from-primary via-primary to-secondary bg-clip-text text-transparent">IKRAM</span>
         </Link>
 
         {/* Desktop nav */}
