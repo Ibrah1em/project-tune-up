@@ -34,9 +34,15 @@ const SchoolSponsors = () => (
       <div className="container mx-auto px-6 relative z-10">
         <div className="flex flex-col md:flex-row items-center gap-12">
           <div className="w-full md:w-1/3 flex justify-center">
-            <div className="h-48 w-48 rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 border border-primary/10 flex items-center justify-center">
-              <Heart className="h-24 w-24 text-primary/50" />
-            </div>
+            <motion.div
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", stiffness: 150, damping: 15 }}
+              whileHover={{ scale: 1.05, rotate: 5 }}
+              className="h-48 w-48 rounded-3xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-2xl shadow-primary/40"
+            >
+              <Heart className="h-24 w-24 text-primary-foreground drop-shadow-lg" />
+            </motion.div>
           </div>
           <div className="w-full md:w-2/3">
             <motion.h1
@@ -92,9 +98,9 @@ const SchoolSponsors = () => (
             },
           ].map((item, i) => (
             <ScrollReveal key={i} delay={i * 0.1}>
-              <div className="group bg-card rounded-2xl border border-border p-8 hover:border-primary/20 transition-all duration-500 hover:-translate-y-2 text-center">
-                <div className="h-16 w-16 rounded-xl bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center text-primary mx-auto mb-5 group-hover:scale-110 transition-transform duration-300">
-                  <item.icon className="h-8 w-8" />
+              <div className="group bg-card rounded-2xl border border-border p-8 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 transition-all duration-500 hover:-translate-y-2 text-center">
+                <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-5 shadow-lg shadow-primary/30 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                  <item.icon className="h-8 w-8 text-primary-foreground" />
                 </div>
                 <h3 className="font-display font-bold text-lg text-foreground mb-3">{item.title}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">{item.desc}</p>
@@ -117,9 +123,13 @@ const SchoolSponsors = () => (
         <div className="flex flex-col lg:flex-row items-start gap-12">
           {/* Illustration */}
           <ScrollReveal direction="right" className="w-full lg:w-1/3 flex justify-center">
-            <div className="h-64 w-64 rounded-3xl bg-gradient-to-br from-primary/10 to-secondary/10 border border-primary/10 flex items-center justify-center">
-              <Sparkles className="h-32 w-32 text-primary/30" />
-            </div>
+            <motion.div
+              whileHover={{ scale: 1.05, rotate: 5 }}
+              transition={{ type: "spring", stiffness: 200 }}
+              className="h-64 w-64 rounded-3xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-2xl shadow-primary/40"
+            >
+              <Sparkles className="h-32 w-32 text-primary-foreground drop-shadow-lg" />
+            </motion.div>
           </ScrollReveal>
 
           {/* Points */}
@@ -153,8 +163,8 @@ const SchoolSponsors = () => (
           ].map((item, i) => (
             <ScrollReveal key={i} delay={i * 0.08}>
               <div className="flex gap-5 group">
-                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center text-primary shrink-0 group-hover:scale-110 transition-transform">
-                  <item.icon className="h-6 w-6" />
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shrink-0 shadow-lg shadow-primary/30 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                  <item.icon className="h-6 w-6 text-primary-foreground" />
                 </div>
                 <div>
                   <h3 className="font-display font-bold text-lg text-foreground mb-2">{item.title}</h3>
@@ -179,9 +189,9 @@ const SchoolSponsors = () => (
 
         <div className="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto">
           <ScrollReveal delay={0}>
-            <div className="bg-card rounded-2xl border border-border p-8 text-center hover:border-primary/20 transition-all duration-300">
-              <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20 flex items-center justify-center mx-auto mb-6">
-                <span className="font-display font-bold text-2xl text-yellow-400">IP</span>
+            <div className="group bg-card rounded-2xl border border-border p-8 text-center hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-2 transition-all duration-500">
+              <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-6 shadow-lg shadow-primary/30 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                <span className="font-display font-extrabold text-2xl text-primary-foreground drop-shadow-lg">IP</span>
               </div>
               <h3 className="font-display font-bold text-xl text-foreground mb-3">InstaPay</h3>
               <p className="text-muted-foreground text-sm mb-2">حساب إنستاباي</p>
@@ -190,9 +200,9 @@ const SchoolSponsors = () => (
           </ScrollReveal>
 
           <ScrollReveal delay={0.1}>
-            <div className="bg-card rounded-2xl border border-border p-8 text-center hover:border-primary/20 transition-all duration-300">
-              <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-red-500/20 to-red-600/20 flex items-center justify-center mx-auto mb-6">
-                <span className="font-display font-bold text-2xl text-red-400">VC</span>
+            <div className="group bg-card rounded-2xl border border-border p-8 text-center hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-2 transition-all duration-500">
+              <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-6 shadow-lg shadow-primary/30 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                <span className="font-display font-extrabold text-2xl text-primary-foreground drop-shadow-lg">VC</span>
               </div>
               <h3 className="font-display font-bold text-xl text-foreground mb-3">فودافون كاش</h3>
               <p className="text-muted-foreground text-sm mb-2">رقم التحويل</p>
