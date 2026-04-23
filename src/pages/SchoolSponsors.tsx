@@ -71,22 +71,22 @@ const SchoolSponsors = () => (
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
             {
-              icon: <Heart className="h-8 w-8" />,
+              icon: Heart,
               title: "صدقة جارية",
               desc: "ستشارك في الأجر وتلعب دوراً فعالاً في تنمية المجتمع وتمكين الشباب",
             },
             {
-              icon: <Percent className="h-8 w-8" />,
+              icon: Percent,
               title: "خصومات حصرية",
               desc: "ستحصل على خصم 60% على جميع مسارات ودورات المدرسة",
             },
             {
-              icon: <MessageCircle className="h-8 w-8" />,
+              icon: MessageCircle,
               title: "مجموعات دردشة",
               desc: "ستنضم لمجموعات خاصة للنقاش والتوجيه",
             },
             {
-              icon: <Calendar className="h-8 w-8" />,
+              icon: Calendar,
               title: "فعاليات خاصة",
               desc: "ستتمكن من مقابلتنا في فعالياتنا واجتماعاتنا الخاصة",
             },
@@ -94,7 +94,7 @@ const SchoolSponsors = () => (
             <ScrollReveal key={i} delay={i * 0.1}>
               <div className="group bg-card rounded-2xl border border-border p-8 hover:border-primary/20 transition-all duration-500 hover:-translate-y-2 text-center">
                 <div className="h-16 w-16 rounded-xl bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center text-primary mx-auto mb-5 group-hover:scale-110 transition-transform duration-300">
-                  {item.icon}
+                  <item.icon className="h-8 w-8" />
                 </div>
                 <h3 className="font-display font-bold text-lg text-foreground mb-3">{item.title}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">{item.desc}</p>
@@ -124,45 +124,45 @@ const SchoolSponsors = () => (
 
           {/* Points */}
           <div className="w-full lg:w-2/3 space-y-6">
-            {[
-              {
-                icon: <Users className="h-6 w-6" />,
-                title: "استمرار دعم غير المقتدرين",
-                desc: "الحفاظ على نسبة الدعم بنسبة 100% داخل وخارج مصر لضمان عدم وجود أي عائق مادي أمام أي طالب غير مقتدر.",
-              },
-              {
-                icon: <Award className="h-6 w-6" />,
-                title: "جوائز ومكافآت للمتفوقين",
-                desc: "تنظيم لقاءات وفعاليات لتكريم الطلاب المتفوقين وتقديم جوائز نقدية وهدايا.",
-              },
-              {
-                icon: <BookOpen className="h-6 w-6" />,
-                title: "توظيف مشرفين إضافيين",
-                desc: "توظيف المزيد من المهندسين والمشرفين للتواصل مع الطلاب المدعومين وضمان حصولهم على الدعم الكامل كالاشتراكات المدفوعة.",
-              },
-              {
-                icon: <Server className="h-6 w-6" />,
-                title: "تطوير دورات جديدة",
-                desc: "التعاقد مع مهندسين متخصصين لإنشاء دورات ومسارات جديدة غير متوفرة حالياً لتلبية احتياجات السوق وتعزيز مهارات الطلاب.",
-              },
-              {
-                icon: <Sparkles className="h-6 w-6" />,
-                title: "تحسين البنية التحتية للمدرسة",
-                desc: "تطوير أساسات المدرسة لضمان بيئة تعليمية أفضل وأكثر تفاعلية لجميع الطلاب.",
-              },
-            ].map((item, i) => (
-              <ScrollReveal key={i} delay={i * 0.08}>
-                <div className="flex gap-5 group">
-                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center text-primary shrink-0 group-hover:scale-110 transition-transform">
-                    {item.icon}
-                  </div>
-                  <div>
-                    <h3 className="font-display font-bold text-lg text-foreground mb-2">{item.title}</h3>
-                    <p className="text-muted-foreground text-sm leading-relaxed">{item.desc}</p>
-                  </div>
+          {[
+            {
+              icon: Users,
+              title: "استمرار دعم غير المقتدرين",
+              desc: "الحفاظ على نسبة الدعم بنسبة 100% داخل وخارج مصر لضمان عدم وجود أي عائق مادي أمام أي طالب غير مقتدر.",
+            },
+            {
+              icon: Award,
+              title: "جوائز ومكافآت للمتفوقين",
+              desc: "تنظيم لقاءات وفعاليات لتكريم الطلاب المتفوقين وتقديم جوائز نقدية وهدايا.",
+            },
+            {
+              icon: BookOpen,
+              title: "توظيف مشرفين إضافيين",
+              desc: "توظيف المزيد من المهندسين والمشرفين للتواصل مع الطلاب المدعومين وضمان حصولهم على الدعم الكامل كالاشتراكات المدفوعة.",
+            },
+            {
+              icon: Server,
+              title: "تطوير دورات جديدة",
+              desc: "التعاقد مع مهندسين متخصصين لإنشاء دورات ومسارات جديدة غير متوفرة حالياً لتلبية احتياجات السوق وتعزيز مهارات الطلاب.",
+            },
+            {
+              icon: Sparkles,
+              title: "تحسين البنية التحتية للمدرسة",
+              desc: "تطوير أساسات المدرسة لضمان بيئة تعليمية أفضل وأكثر تفاعلية لجميع الطلاب.",
+            },
+          ].map((item, i) => (
+            <ScrollReveal key={i} delay={i * 0.08}>
+              <div className="flex gap-5 group">
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center text-primary shrink-0 group-hover:scale-110 transition-transform">
+                  <item.icon className="h-6 w-6" />
                 </div>
-              </ScrollReveal>
-            ))}
+                <div>
+                  <h3 className="font-display font-bold text-lg text-foreground mb-2">{item.title}</h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed">{item.desc}</p>
+                </div>
+              </div>
+            </ScrollReveal>
+          ))}
           </div>
         </div>
       </div>
